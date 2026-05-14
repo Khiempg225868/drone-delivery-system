@@ -54,6 +54,20 @@ const depotIcon = L.divIcon({
   iconAnchor: [16, 16],
 })
 
+const droneIcon = L.divIcon({
+  className: "drone-marker",
+  html: `<div style="
+    width:28px;height:28px;border-radius:50%;
+    background:linear-gradient(135deg, hsl(280 85% 55%), hsl(320 85% 55%));
+    color:white;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:16px;border:3px solid white;
+    box-shadow:0 0 12px rgba(200, 100, 255, 0.8);
+    animation:pulse 1s infinite;
+  ">🚁</div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+})
+
 function FitBounds({ points }) {
   const map = useMap()
   useEffect(() => {
@@ -82,6 +96,12 @@ export default function DroneMap() {
     formData: { name: '', phone: '', email: '' }
   })
   const [claiming, setClaiming] = useState(false)
+  const [isDelivering, setIsDelivering] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [dronePosition, setDronePosition] = useState(null)
+  const [currentStopIndex, setCurrentStopIndex] = useState(0)
+  const [deliveredCount, setDeliveredCount] = useState(0)
+  const [deliveryLog, setDeliveryLog] = useState([])
   const { toasts, showToast } = useToast()
 
   useEffect(() => {
@@ -259,6 +279,215 @@ export default function DroneMap() {
     }
   }
 
+  // Send notification to house owner (non-blocking)
+  const sendNotificationToOwner = async (house) => {
+    try {
+      console.log(`[Notification] Sending notification to ${house.address}...`)
+      const response = await axios.post(`${API_BASE}/location/notify-arrival`, {
+        houseId: house._id,
+        houseName: house.address,
+        ownerPhone: house.owner?.phone,
+        ownerEmail: house.owner?.email,
+        message: `✅ Drone giao hàng đã tới nhà bạn tại ${house.address}. Vui lòng nhận hàng.`
+      }, { timeout: 5000 }) // 5 second timeout
+
+      console.log(`[Notification] Success for ${house.address}:`, response.data)
+
+      // Add to delivery log with success status
+      const logEntry = {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString('vi-VN'),
+        address: house.address,
+        owner: house.owner?.name,
+        phone: house.owner?.phone,
+        status: '✅ Giao hàng thành công',
+        notificationId: response.data.notification?.id
+      }
+      setDeliveryLog(prev => [...prev, logEntry])
+      setDeliveredCount(prev => prev + 1)
+
+      // showToast(`✅ Giao thành công tại ${house.address}\n👤 ${house.owner?.name}\n📞 ${house.owner?.phone}`, 'success')
+    } catch (error) {
+      console.error(`[Notification] Failed for ${house.address}:`, error.message, error.response?.status, error.response?.data)
+      
+      // Still log the delivery as successful even if notification failed
+      const logEntry = {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString('vi-VN'),
+        address: house.address,
+        owner: house.owner?.name,
+        phone: house.owner?.phone,
+        status: '✅ Giao thành công (Thông báo gửi tạo lỗi)',
+        notificationId: null
+      }
+      setDeliveryLog(prev => [...prev, logEntry])
+      setDeliveredCount(prev => prev + 1)
+      
+      // Show success toast but with warning about notification
+      showToast(`✅ Giao thành công tại ${house.address}\n👤 ${house.owner?.name}\n⚠️ Thông báo gửi gặp lỗi`, 'success')
+    }
+  }
+
+  // Animate drone to a specific location (with tracking callback to avoid stale state)
+  const animateDroneToWithTracking = (startPos, targetLat, targetLng, duration = 3000, onPositionUpdate) => {
+    return new Promise((resolve) => {
+      const startTime = Date.now()
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime
+        const progress = Math.min(elapsed / duration, 1)
+
+        const lat = startPos.lat + (targetLat - startPos.lat) * progress
+        const lng = startPos.lng + (targetLng - startPos.lng) * progress
+
+        onPositionUpdate({ lat, lng })
+
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          onPositionUpdate({ lat: targetLat, lng: targetLng })
+          resolve()
+        }
+      }
+
+      requestAnimationFrame(animate)
+    })
+  }
+
+  // Animate drone to a specific location (legacy, kept for compatibility)
+  const animateDroneTo = (targetLat, targetLng, duration = 3000) => {
+    return new Promise((resolve) => {
+      const startTime = Date.now()
+      const startLat = dronePosition?.lat || DEPOT.lat
+      const startLng = dronePosition?.lng || DEPOT.lng
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime
+        const progress = Math.min(elapsed / duration, 1)
+
+        const lat = startLat + (targetLat - startLat) * progress
+        const lng = startLng + (targetLng - startLng) * progress
+
+        setDronePosition({ lat, lng })
+
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          resolve()
+        }
+      }
+
+      requestAnimationFrame(animate)
+    })
+  }
+
+  // Start delivery simulation
+  const handleStartDelivery = async () => {
+    if (route.length === 0) {
+      showToast('Vui lòng tạo lộ trình trước', 'error')
+      return
+    }
+
+    // Capture route and housesMap at the start to avoid stale closures
+    const routeSnapshot = [...route]
+    const housesMap = new Map(houses.map((h) => [h._id, h]))
+    let isDeliveryActive = true
+    let currentDronePos = { lat: DEPOT.lat, lng: DEPOT.lng }
+
+    setIsDelivering(true)
+    setCurrentStopIndex(0)
+    setDronePosition(currentDronePos)
+    setDeliveryLog([])
+    setDeliveredCount(0)
+    showToast('🚁 Bắt đầu giao hàng...', 'success')
+
+    try {
+      console.log(`[Delivery] Starting delivery with ${routeSnapshot.length} houses`)
+      
+      // Move to each house in the route (sequentially, without returning to depot)
+      for (let i = 0; i < routeSnapshot.length; i++) {
+        if (!isDeliveryActive) {
+          console.log('[Delivery] Delivery cancelled')
+          break
+        }
+
+        // Wait if paused
+        while (isPaused && isDeliveryActive) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+
+        setCurrentStopIndex(i + 1)
+        const houseId = routeSnapshot[i]
+        const house = housesMap.get(houseId)
+
+        if (!house) {
+          console.error(`[Delivery] House not found for ID: ${houseId}`)
+          showToast(`⚠️ Không tìm thấy căn nhà #${i + 1}`, 'warning')
+          continue
+        }
+
+        try {
+          console.log(`[Delivery] Stop ${i + 1}/${routeSnapshot.length}: Moving from (${currentDronePos.lat.toFixed(6)}, ${currentDronePos.lng.toFixed(6)}) to ${house.address}`)
+          
+          // Animate drone to house location (using tracked position, not React state)
+          await animateDroneToWithTracking(currentDronePos, house.lat, house.lng, 4000, (pos) => {
+            currentDronePos = pos
+            setDronePosition(pos)
+          })
+          console.log(`[Delivery] Reached ${house.address} at (${currentDronePos.lat.toFixed(6)}, ${currentDronePos.lng.toFixed(6)})`)
+
+          // Send notification to owner
+          await sendNotificationToOwner(house)
+          console.log(`[Delivery] Notification sent for ${house.address}`)
+
+          showToast(`✓ Đã giao hàng tại: ${house.address}`, 'success')
+
+          // Wait 1 second before moving to next house
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        } catch (stepError) {
+          console.error(`[Delivery] Error at step ${i + 1}:`, stepError)
+          showToast(`Lỗi tại nhà #${i + 1}: ${stepError.message}`, 'error')
+        }
+      }
+
+      // Return to depot
+      console.log('[Delivery] Returning to depot')
+      showToast('🚁 Trở về depot...', 'info')
+      await animateDroneToWithTracking(currentDronePos, DEPOT.lat, DEPOT.lng, 4000, (pos) => {
+        currentDronePos = pos
+        setDronePosition(pos)
+      })
+
+      isDeliveryActive = false
+      setIsDelivering(false)
+      setDronePosition(null)
+      setCurrentStopIndex(0)
+      console.log(`[Delivery] Completed all ${routeSnapshot.length} deliveries`)
+      showToast(`✅ Hoàn thành giao hàng ${routeSnapshot.length} ngôi nhà`, 'success')
+    } catch (error) {
+      console.error("[Delivery] Fatal error during delivery:", error)
+      isDeliveryActive = false
+      setIsDelivering(false)
+      showToast('Lỗi: Giao hàng bị gián đoạn', 'error')
+    }
+  }
+
+  // Pause delivery
+  const handlePauseDelivery = () => {
+    setIsPaused(!isPaused)
+    showToast(isPaused ? '▶ Tiếp tục giao hàng' : '⏸ Tạm dừng giao hàng', 'info')
+  }
+
+  // Stop delivery
+  const handleStopDelivery = async () => {
+    console.log('[Delivery] Stop button clicked')
+    setIsDelivering(false)
+    setIsPaused(false)
+    setDronePosition(null)
+    setCurrentStopIndex(0)
+    showToast('🛑 Dừng giao hàng', 'warning')
+  }
+
   const houseById = useMemo(() => new Map(houses.map((h) => [h._id, h])), [houses])
 
   const polyline = useMemo(() => {
@@ -417,6 +646,92 @@ export default function DroneMap() {
         </div>
       )}
       
+      {/* Delivery Status Panel */}
+      {isDelivering && (
+        <div className="absolute top-20 right-4 z-[900] bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-2xl p-5 w-80 text-white border border-white/30">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <span className="animate-spin">🚁</span> Đang giao hàng
+            </h3>
+            <span className={`text-sm px-3 py-1 rounded-full ${
+              isPaused 
+                ? 'bg-yellow-500/30 border border-yellow-300' 
+                : 'bg-green-500/30 border border-green-300'
+            }`}>
+              {isPaused ? '⏸ Tạm dừng' : '▶ Đang chạy'}
+            </span>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="bg-white/20 rounded-lg p-3">
+              <p className="text-sm opacity-90">Tiến độ giao hàng</p>
+              <div className="mt-1 w-full bg-white/30 rounded-full h-2">
+                <div 
+                  className="bg-white h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${((currentStopIndex + 1) / route.length) * 100}%` }}
+                ></div>
+              </div>
+              <p className="text-sm mt-2 font-semibold">
+                Stop {currentStopIndex + 1} / {route.length}
+              </p>
+              <p className="text-xs mt-1 opacity-75">✅ Đã giao: {deliveredCount}</p>
+            </div>
+
+            {route[currentStopIndex] && houseById.get(route[currentStopIndex]) && (
+              <div className="bg-white/20 rounded-lg p-3">
+                <p className="text-sm opacity-90">Điểm giao hàng hiện tại</p>
+                <p className="font-semibold text-sm mt-1">
+                  {houseById.get(route[currentStopIndex])?.address}
+                </p>
+                <p className="text-xs opacity-75 mt-1">
+                  👤 {houseById.get(route[currentStopIndex])?.owner?.name}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delivery Log Panel */}
+      {deliveryLog.length > 0 && (
+        <div className="absolute top-20 right-96 z-[900] bg-white rounded-xl shadow-xl p-4 border border-gray-200 w-96 max-h-96 overflow-y-auto">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+              📋 Lịch sử giao hàng ({deliveryLog.length})
+            </h3>
+            {isDelivering && <span className="animate-pulse text-green-600 text-2xl">●</span>}
+          </div>
+          
+          <div className="space-y-2">
+            {deliveryLog.map((entry, idx) => (
+              <div key={entry.id} className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-lg text-sm">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-800">#{idx + 1} {entry.address}</p>
+                    <p className="text-xs text-gray-600 mt-1">👤 {entry.owner}</p>
+                    <p className="text-xs text-gray-600">📱 {entry.phone}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs font-semibold text-green-700">{entry.status}</span>
+                      <span className="text-xs text-gray-500">{entry.time}</span>
+                    </div>
+                  </div>
+                </div>
+                {entry.notificationId && (
+                  <p className="text-xs text-green-600 mt-2">✓ Thông báo ID: {entry.notificationId.substring(0, 8)}...</p>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          {!isDelivering && deliveryLog.length > 0 && (
+            <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+              <p className="text-sm font-bold text-green-800">✅ Hoàn thành giao hàng</p>
+              <p className="text-xs text-green-700 mt-1">Tổng cộng: {deliveredCount} điểm</p>
+            </div>
+          )}
+        </div>
+      )}
+      
       {/* Search Owner Section */}
       <div className="absolute top-20 left-4 z-[900] bg-white rounded-xl shadow-xl p-4 w-80 max-h-96 overflow-y-auto border border-gray-200">
         <div className="flex items-center justify-between mb-4">
@@ -552,7 +867,7 @@ export default function DroneMap() {
         <div className="space-y-2">
           <button
             onClick={handleClear}
-            disabled={activeIds.size === 0}
+            disabled={activeIds.size === 0 || isDelivering}
             className="w-full px-4 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-sm flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -562,7 +877,7 @@ export default function DroneMap() {
           </button>
           <button
             onClick={handleOptimize}
-            disabled={activeIds.size === 0 || loading}
+            disabled={activeIds.size === 0 || loading || isDelivering}
             className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-sm flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -570,6 +885,56 @@ export default function DroneMap() {
             </svg>
             {loading ? "Đang tối ưu..." : "Tối ưu lộ trình"}
           </button>
+
+          {/* Delivery Control Buttons */}
+          {!isDelivering ? (
+            <button
+              onClick={handleStartDelivery}
+              disabled={route.length === 0}
+              className="w-full px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold text-sm flex items-center justify-center gap-2 animate-pulse"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              🚁 Bắt đầu giao hàng
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handlePauseDelivery}
+                className={`w-full px-4 py-2.5 ${
+                  isPaused
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+                    : 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700'
+                } text-white rounded-lg transition font-semibold text-sm flex items-center justify-center gap-2`}
+              >
+                {isPaused ? (
+                  <>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                    ▶ Tiếp tục
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                    </svg>
+                    ⏸ Tạm dừng
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleStopDelivery}
+                className="w-full px-4 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold text-sm flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 4h12v12H6V4z" />
+                </svg>
+                🛑 Dừng giao hàng
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -677,6 +1042,22 @@ export default function DroneMap() {
             </Marker>
           )
         })}
+
+        {/* Drone Marker - Show during delivery */}
+        {dronePosition && (
+          <Marker position={[dronePosition.lat, dronePosition.lng]} icon={droneIcon}>
+            <Popup>
+              <div className="font-semibold">🚁 Drone đang giao hàng</div>
+              <div className="text-sm">Stop #{currentStopIndex + 1}/{route.length}</div>
+              <div className="text-sm text-gray-600">
+                Lat: {dronePosition.lat.toFixed(6)}
+              </div>
+              <div className="text-sm text-gray-600">
+                Lng: {dronePosition.lng.toFixed(6)}
+              </div>
+            </Popup>
+          </Marker>
+        )}
 
         {polyline.length > 0 && (
           <>

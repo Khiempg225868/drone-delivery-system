@@ -36,9 +36,11 @@ export const deleteDrone = (id) => api.delete(`/drones/${id}`)
 
 // Deliveries
 export const getDeliveries = () => api.get('/deliveries')
+export const getMyDeliveries = () => api.get('/deliveries/my')
 export const getDeliveryById = (id) => api.get(`/deliveries/${id}`)
 export const createDelivery = (data) => api.post('/deliveries', data)
 export const updateDelivery = (id, data) => api.put(`/deliveries/${id}`, data)
 export const deleteDelivery = (id) => api.delete(`/deliveries/${id}`)
+export const confirmDelivery = (id, data) => api.post(`/deliveries/${id}/confirm`, data)
 
 export default api

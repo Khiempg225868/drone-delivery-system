@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 
 export function useToast() {
   const [toasts, setToasts] = useState([])
+  const [toastCounter, setToastCounter] = useState(0)
 
   const showToast = (message, type = 'info', duration = 3000) => {
-    const id = Date.now()
+    const id = `${Date.now()}-${toastCounter}`
+    setToastCounter(prev => prev + 1)
     setToasts((prev) => [...prev, { id, message, type }])
 
     if (duration > 0) {

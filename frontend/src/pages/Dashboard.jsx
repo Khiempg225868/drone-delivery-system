@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { getDrones, getDeliveries } from '../services/api'
+import axios from 'axios'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL
 
 const StatCard = ({ icon, label, value, color, trend }) => (
   <div className={`bg-gradient-to-br from-${color}-50 to-${color}-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition transform hover:scale-105`}>
@@ -49,32 +52,41 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchStats()
-  }, [])
+    if (user) {
+      fetchStats()
+    }
+  }, [user])
 
   const fetchStats = async () => {
     try {
-      const [dronesRes, deliveriesRes] = await Promise.all([
-        getDrones(),
-        getDeliveries(),
-      ])
+      // Fetch drones and deliveries - these might fail, but it's not critical
+      try {
+        const [dronesRes, deliveriesRes] = await Promise.all([
+          getDrones(),
+          getDeliveries(),
+        ])
 
-      const activeDeliveries = deliveriesRes.data.filter(
-        (d) => d.status === 'in_transit' || d.status === 'assigned'
-      ).length
+        const activeDeliveries = deliveriesRes.data.filter(
+          (d) => d.status === 'in_transit' || d.status === 'assigned'
+        ).length
 
-      const completedToday = deliveriesRes.data.filter(
-        (d) => d.status === 'delivered'
-      ).length
+        const completedToday = deliveriesRes.data.filter(
+          (d) => d.status === 'delivered'
+        ).length
 
-      setStats({
-        drones: dronesRes.data.length,
-        deliveries: deliveriesRes.data.length,
-        activeDeliveries,
-        completedToday,
-      })
+        setStats({
+          drones: dronesRes.data.length,
+          deliveries: deliveriesRes.data.length,
+          activeDeliveries,
+          completedToday,
+        })
+      } catch (statsError) {
+        console.log('Could not fetch drones/deliveries stats:', statsError.message)
+        // Continue with owner search even if stats fail
+      }
+
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      console.error('Unexpected error in fetchStats:', error)
     } finally {
       setLoading(false)
     }
@@ -213,6 +225,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
     </div>
   )
 }
