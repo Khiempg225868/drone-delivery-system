@@ -4,6 +4,7 @@ import { env } from "./environments.js";
 export const generateToken = (user) => {
   const payload = {
     email: user.Email,
+    phone: user.Phone,
     role: user.Role,
   };
   return jwt.sign(payload, env.JWT_SECRET, {

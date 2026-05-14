@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const deliverySchema = new mongoose.Schema({
   deliveryId: {
@@ -18,6 +18,7 @@ const deliverySchema = new mongoose.Schema({
   receiver: {
     name: String,
     phone: String,
+    email: String,
     address: String,
     latitude: Number,
     longitude: Number,
@@ -31,6 +32,17 @@ const deliverySchema = new mongoose.Schema({
     enum: ['pending', 'assigned', 'in_transit', 'delivered', 'failed', 'cancelled'],
     default: 'pending',
   },
+  customerConfirmed: {
+    type: Boolean,
+    default: false,
+  },
+  customerConfirmedAt: Date,
+  customerRating: {
+    type: Number,
+    min: 1,
+    max: 5,
+  },
+  customerFeedback: String,
   estimatedDeliveryTime: Date,
   actualDeliveryTime: Date,
   createdAt: {
@@ -43,4 +55,5 @@ const deliverySchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model('Delivery', deliverySchema);
+const Delivery = mongoose.model('Delivery', deliverySchema);
+export default Delivery;
