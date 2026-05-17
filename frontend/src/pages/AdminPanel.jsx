@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { useLanguage } from '../i18n/LanguageContext'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL
+const AUTH_API_BASE = import.meta.env.VITE_API_AUTH_URL || import.meta.env.VITE_API_BASE_URL
+const DELIVERY_API_BASE = import.meta.env.VITE_API_DELIVERY_URL || import.meta.env.VITE_API_BASE_URL
+const ORDER_API_BASE = import.meta.env.VITE_API_ORDER_URL || import.meta.env.VITE_API_BASE_URL
 
 export default function AdminPanel() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalDrones: 0,
@@ -26,10 +30,10 @@ export default function AdminPanel() {
       
       // Fetch statistics from various endpoints
       const [usersRes, dronesRes, deliveriesRes, housesRes] = await Promise.allSettled([
-        axios.get(`${API_BASE}/account/all`).catch(() => ({ data: { accounts: [] } })),
-        axios.get(`${API_BASE}/drone`).catch(() => ({ data: [] })),
-        axios.get(`${API_BASE}/delivery`).catch(() => ({ data: [] })),
-        axios.get(`${API_BASE}/location/houses`).catch(() => ({ data: [] }))
+        axios.get(`${AUTH_API_BASE}/account/get-all`).catch(() => ({ data: { accounts: [] } })),
+        axios.get(`${DELIVERY_API_BASE}/drones`).catch(() => ({ data: [] })),
+        axios.get(`${DELIVERY_API_BASE}/deliveries`).catch(() => ({ data: [] })),
+        axios.get(`${ORDER_API_BASE}/location/houses`).catch(() => ({ data: [] }))
       ])
 
       const users = usersRes.status === 'fulfilled' ? (usersRes.value.data.accounts || usersRes.value.data || []) : []
@@ -47,7 +51,7 @@ export default function AdminPanel() {
         activeDeliveries: activeDeliveries,
       })
     } catch (err) {
-      setError('Failed to fetch statistics')
+      setError(t('Failed to fetch statistics'))
       console.error(err)
     } finally {
       setLoading(false)
@@ -57,15 +61,22 @@ export default function AdminPanel() {
   const adminActions = [
     {
       icon: '👥',
-      title: 'Manage Users',
-      description: 'View, edit, and manage system users',
+      title: t('Manage Users'),
+      description: t('View, edit, and manage system users'),
       path: '/admin/users',
       color: 'from-blue-500 to-blue-600'
     },
     {
+      icon: '🧾',
+      title: t('Manage Orders'),
+      description: t('Review orders and push to Drone Map'),
+      path: '/admin/orders',
+      color: 'from-orange-500 to-orange-600'
+    },
+    {
       icon: '📍',
-      title: 'Manage Locations',
-      description: 'Add and manage delivery locations',
+      title: t('Manage Locations'),
+      description: t('Add and manage delivery locations'),
       path: '/admin/locations',
       color: 'from-green-500 to-green-600'
     },
@@ -76,7 +87,7 @@ export default function AdminPanel() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading admin panel...</p>
+          <p className="text-gray-600">{t('Loading admin panel...')}</p>
         </div>
       </div>
     )
@@ -86,8 +97,8 @@ export default function AdminPanel() {
     <div className="space-y-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">⚙️ Admin Panel</h1>
-        <p className="text-gray-600">Manage your drone delivery system</p>
+        <h1 className="text-4xl font-bold text-gray-800 mb-2">⚙️ {t('Admin Panel')}</h1>
+        <p className="text-gray-600">{t('Manage your drone delivery system')}</p>
       </div>
 
       {/* Error Message */}
@@ -102,7 +113,7 @@ export default function AdminPanel() {
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm font-medium">Total Users</p>
+              <p className="text-blue-100 text-sm font-medium">{t('Total Users')}</p>
               <p className="text-3xl font-bold mt-2">{stats.totalUsers}</p>
             </div>
             <div className="text-5xl opacity-20">👥</div>
@@ -112,7 +123,7 @@ export default function AdminPanel() {
         <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium">Total Drones</p>
+              <p className="text-green-100 text-sm font-medium">{t('Total Drones')}</p>
               <p className="text-3xl font-bold mt-2">{stats.totalDrones}</p>
             </div>
             <div className="text-5xl opacity-20">🚁</div>
@@ -122,7 +133,7 @@ export default function AdminPanel() {
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm font-medium">Total Deliveries</p>
+              <p className="text-purple-100 text-sm font-medium">{t('Total Deliveries')}</p>
               <p className="text-3xl font-bold mt-2">{stats.totalDeliveries}</p>
             </div>
             <div className="text-5xl opacity-20">📦</div>
@@ -132,7 +143,7 @@ export default function AdminPanel() {
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-sm font-medium">Active Deliveries</p>
+              <p className="text-orange-100 text-sm font-medium">{t('Active Deliveries')}</p>
               <p className="text-3xl font-bold mt-2">{stats.activeDeliveries}</p>
             </div>
             <div className="text-5xl opacity-20">🔄</div>
@@ -142,7 +153,7 @@ export default function AdminPanel() {
         <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-pink-100 text-sm font-medium">Locations</p>
+              <p className="text-pink-100 text-sm font-medium">{t('Locations')}</p>
               <p className="text-3xl font-bold mt-2">{stats.totalHouses}</p>
             </div>
             <div className="text-5xl opacity-20">📍</div>
@@ -152,7 +163,7 @@ export default function AdminPanel() {
 
       {/* Admin Actions */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Actions</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">{t('Quick Actions')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {adminActions.map((action, index) => (
             <button
@@ -169,7 +180,7 @@ export default function AdminPanel() {
                 <h3 className="text-2xl font-bold mb-2">{action.title}</h3>
                 <p className="text-white/90 mb-4">{action.description}</p>
                 <div className="inline-flex items-center gap-2 text-white font-semibold">
-                  Go to {action.title}
+                  {t('Go to')} {action.title}
                   <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
@@ -185,23 +196,23 @@ export default function AdminPanel() {
 
       {/* Info Cards */}
       <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
-        <h3 className="text-lg font-bold text-blue-900 mb-3">📋 System Information</h3>
+        <h3 className="text-lg font-bold text-blue-900 mb-3">📋 {t('System Information')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
           <div>
-            <p className="font-semibold">Total System Users:</p>
-            <p className="text-lg">{stats.totalUsers} users</p>
+            <p className="font-semibold">{t('Total System Users:')}</p>
+            <p className="text-lg">{stats.totalUsers} {t('users')}</p>
           </div>
           <div>
-            <p className="font-semibold">Registered Locations:</p>
-            <p className="text-lg">{stats.totalHouses} locations</p>
+            <p className="font-semibold">{t('Registered Locations:')}</p>
+            <p className="text-lg">{stats.totalHouses} {t('locations')}</p>
           </div>
           <div>
-            <p className="font-semibold">Active Drones:</p>
-            <p className="text-lg">{stats.totalDrones} drones</p>
+            <p className="font-semibold">{t('Active Drones:')}</p>
+            <p className="text-lg">{stats.totalDrones} {t('drones')}</p>
           </div>
           <div>
-            <p className="font-semibold">Delivery Status:</p>
-            <p className="text-lg">{stats.activeDeliveries} active / {stats.totalDeliveries} total</p>
+            <p className="font-semibold">{t('Delivery Status:')}</p>
+            <p className="text-lg">{stats.activeDeliveries} {t('active')} / {stats.totalDeliveries} {t('total')}</p>
           </div>
         </div>
       </div>

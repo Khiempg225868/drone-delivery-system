@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { getDrones, getDeliveries } from '../services/api'
 import axios from 'axios'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL
 
@@ -43,6 +44,7 @@ const RecentItem = ({ type, title, status, time }) => (
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [stats, setStats] = useState({
     drones: 0,
     deliveries: 0,
@@ -97,7 +99,7 @@ export default function Dashboard() {
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600">{t('Loading dashboard...')}</p>
         </div>
       </div>
     )
@@ -108,10 +110,10 @@ export default function Dashboard() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900">
-          Welcome back, {user?.FullName}! 👋
+          {t('Welcome back,')} {user?.FullName}! 👋
         </h1>
         <p className="text-gray-600 mt-2">
-          Here's what's happening with your delivery system today
+          {t("Here's what's happening with your delivery system today")}
         </p>
       </div>
 
@@ -119,31 +121,31 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           icon="🚁"
-          label="Total Drones"
+          label={t('Total Drones')}
           value={stats.drones}
           color="blue"
-          trend="Operational"
+          trend={t('Operational')}
         />
         <StatCard
           icon="📦"
-          label="Total Deliveries"
+          label={t('Total Deliveries')}
           value={stats.deliveries}
           color="purple"
-          trend="All time"
+          trend={t('All time')}
         />
         <StatCard
           icon="🚚"
-          label="Active Deliveries"
+          label={t('Active Deliveries')}
           value={stats.activeDeliveries}
           color="orange"
-          trend="In progress"
+          trend={t('In progress')}
         />
         <StatCard
           icon="✓"
-          label="Completed Today"
+          label={t('Completed Today')}
           value={stats.completedToday}
           color="green"
-          trend="Success rate 98%"
+          trend={t('Success rate 98%')}
         />
       </div>
 
@@ -153,8 +155,8 @@ export default function Dashboard() {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
             <div className="p-6 border-b bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-              <h2 className="text-2xl font-bold">Recent Activity</h2>
-              <p className="text-blue-100 text-sm mt-1">Latest orders and drones</p>
+              <h2 className="text-2xl font-bold">{t('Recent Activity')}</h2>
+              <p className="text-blue-100 text-sm mt-1">{t('Latest orders and drones')}</p>
             </div>
             <div className="divide-y">
               <RecentItem
@@ -189,20 +191,20 @@ export default function Dashboard() {
         <div className="space-y-6">
           {/* System Status */}
           <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">System Status</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('System Status')}</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">Fleet Status</span>
+                <span className="text-sm font-medium text-gray-700">{t('Fleet Status')}</span>
                 <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
-                  OPERATIONAL
+                  {t('OPERATIONAL')}
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">Uptime</span>
+                <span className="text-sm font-medium text-gray-700">{t('Uptime')}</span>
                 <span className="text-sm font-bold text-blue-600">99.8%</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">Avg Delivery</span>
+                <span className="text-sm font-medium text-gray-700">{t('Avg Delivery')}</span>
                 <span className="text-sm font-bold text-purple-600">45 min</span>
               </div>
             </div>
@@ -210,16 +212,16 @@ export default function Dashboard() {
 
           {/* Quick Links */}
           <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{t('Quick Actions')}</h3>
             <div className="space-y-3">
               <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition transform hover:scale-105">
-                🗺️ View Drone Map
+                🗺️ {t('View Drone Map')}
               </button>
               <button className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition transform hover:scale-105">
-                📦 Create Delivery
+                📦 {t('Create Delivery')}
               </button>
               <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold transition transform hover:scale-105">
-                ⚙️ Optimize Route
+                ⚙️ {t('Optimize Route')}
               </button>
             </div>
           </div>

@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { createDelivery } from '../services/api'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export default function DeliveryForm({ onSubmit }) {
+  const { t } = useLanguage()
   const [formData, setFormData] = useState({
     deliveryId: '',
     sender: { name: '', phone: '', address: '' },
@@ -35,11 +37,11 @@ export default function DeliveryForm({ onSubmit }) {
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
-      <h2 className="text-2xl font-bold mb-4">Create Delivery</h2>
+      <h2 className="text-2xl font-bold mb-4">{t('Create Delivery')}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
-          placeholder="Delivery ID"
+          placeholder={t('Delivery ID')}
           name="deliveryId"
           value={formData.deliveryId}
           onChange={handleChange}
@@ -50,7 +52,7 @@ export default function DeliveryForm({ onSubmit }) {
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-semibold"
         >
-          Create Delivery
+          {t('Create Delivery')}
         </button>
       </form>
     </div>

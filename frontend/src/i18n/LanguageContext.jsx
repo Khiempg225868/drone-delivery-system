@@ -1,0 +1,491 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+
+export const LANGUAGES = {
+  en: { code: 'en', name: 'English', shortName: 'EN', locale: 'en-US' },
+  vi: { code: 'vi', name: 'Tiếng Việt', shortName: 'VI', locale: 'vi-VN' },
+}
+
+const phrasePairs = [
+  ['Login', 'Đăng nhập'],
+  ['Login failed', 'Đăng nhập thất bại'],
+  ['Signup failed', 'Đăng ký thất bại'],
+  ['Logout', 'Đăng xuất'],
+  ['Sign Up', 'Đăng ký'],
+  ['Sign In', 'Đăng nhập'],
+  ['Create Account', 'Tạo tài khoản'],
+  ['Welcome Back', 'Chào mừng trở lại'],
+  ['Sign in to your account', 'Đăng nhập vào tài khoản của bạn'],
+  ['Email Address', 'Địa chỉ email'],
+  ['Enter your email', 'Nhập email của bạn'],
+  ['Password', 'Mật khẩu'],
+  ['Enter your password', 'Nhập mật khẩu của bạn'],
+  ["We'll never share your email", 'Chúng tôi sẽ không chia sẻ email của bạn'],
+  ['Logging in...', 'Đang đăng nhập...'],
+  ["Don't have an account?", 'Chưa có tài khoản?'],
+  ['Sign up now', 'Đăng ký ngay'],
+  ['Join us and start delivering', 'Tham gia và bắt đầu giao hàng'],
+  ['Full Name', 'Họ và tên'],
+  ['Enter your full name', 'Nhập họ và tên'],
+  ['Create a strong password', 'Tạo mật khẩu mạnh'],
+  ['At least 6 characters recommended', 'Khuyến nghị ít nhất 6 ký tự'],
+  ['Phone Number', 'Số điện thoại'],
+  ['Enter your phone number', 'Nhập số điện thoại'],
+  ['Role', 'Vai trò'],
+  ['Customer', 'Khách hàng'],
+  ['Operator', 'Nhân viên vận hành'],
+  ['Admin', 'Quản trị viên'],
+  ['Date of Birth', 'Ngày sinh'],
+  ['Creating account...', 'Đang tạo tài khoản...'],
+  ['Already have an account?', 'Đã có tài khoản?'],
+  ['Login here', 'Đăng nhập tại đây'],
+  ['Welcome,', 'Xin chào,'],
+  ['You are not a house owner. Only house owners can view their delivery notifications.', 'Bạn không phải là chủ sở hữu nhà. Chỉ chủ sở hữu mới có thể xem thông báo giao hàng của mình.'],
+  ['Error: Cannot load notifications', 'Lỗi: Không thể tải thông báo'],
+  ['You must log in first', 'Bạn phải đăng nhập trước'],
+  ['Profile', 'Hồ sơ'],
+  ['Dashboard', 'Bảng điều khiển'],
+  ['Drones', 'Drone'],
+  ['Deliveries', 'Giao hàng'],
+  ['Drone Map', 'Bản đồ drone'],
+  ['Admin Panel', 'Bảng quản trị'],
+  ['Users', 'Người dùng'],
+  ['Locations', 'Vị trí'],
+  ['Orders', 'Đơn hàng'],
+  ['Drone Delivery System', 'Hệ thống giao hàng bằng drone'],
+  ['Thong bao giao hang', 'Thông báo giao hàng'],
+  ['Chi chu so huu co the xem', 'Chỉ chủ sở hữu có thể xem'],
+  ['Thong bao moi nhat cho nha cua ban', 'Thông báo mới nhất cho nhà của bạn'],
+  ['Dang tai thong bao...', 'Đang tải thông báo...'],
+  ['Chua co thong bao nao', 'Chưa có thông báo nào'],
+  ['Xem tat ca', 'Xem tất cả'],
+  ['Loading dashboard...', 'Đang tải bảng điều khiển...'],
+  ['Welcome back,', 'Chào mừng trở lại,'],
+  ["Here's what's happening with your delivery system today", 'Tình hình hệ thống giao hàng của bạn hôm nay'],
+  ['Total Drones', 'Tổng số drone'],
+  ['Total Deliveries', 'Tổng đơn giao hàng'],
+  ['Active Deliveries', 'Đơn đang giao'],
+  ['Completed Today', 'Hoàn thành hôm nay'],
+  ['Operational', 'Đang hoạt động'],
+  ['All time', 'Tất cả thời gian'],
+  ['In progress', 'Đang xử lý'],
+  ['Success rate 98%', 'Tỷ lệ thành công 98%'],
+  ['Recent Activity', 'Hoạt động gần đây'],
+  ['Latest orders and drones', 'Đơn hàng và drone mới nhất'],
+  ['System Status', 'Trạng thái hệ thống'],
+  ['Fleet Status', 'Trạng thái đội drone'],
+  ['OPERATIONAL', 'ĐANG HOẠT ĐỘNG'],
+  ['Uptime', 'Thời gian hoạt động'],
+  ['Avg Delivery', 'Giao hàng trung bình'],
+  ['Quick Actions', 'Thao tác nhanh'],
+  ['View Drone Map', 'Xem bản đồ drone'],
+  ['Create Delivery', 'Tạo đơn giao hàng'],
+  ['Optimize Route', 'Tối ưu lộ trình'],
+  ['Real-time Tracking', 'Theo dõi thời gian thực'],
+  ['Monitor your drone fleet in real-time with live GPS tracking', 'Theo dõi đội drone theo thời gian thực bằng GPS trực tiếp'],
+  ['Fleet Management', 'Quản lý đội drone'],
+  ['Efficiently manage and maintain your entire drone fleet', 'Quản lý và bảo trì toàn bộ đội drone hiệu quả'],
+  ['Delivery Tracking', 'Theo dõi giao hàng'],
+  ['Track shipments and manage deliveries seamlessly', 'Theo dõi kiện hàng và quản lý giao hàng liền mạch'],
+  ['Analytics Dashboard', 'Bảng phân tích'],
+  ['Get detailed insights with comprehensive analytics dashboard', 'Nắm bắt thông tin chi tiết bằng bảng phân tích toàn diện'],
+  ['Secure Platform', 'Nền tảng bảo mật'],
+  ['Enterprise-grade security for your delivery operations', 'Bảo mật cấp doanh nghiệp cho hoạt động giao hàng'],
+  ['24/7 Support', 'Hỗ trợ 24/7'],
+  ['Round-the-clock customer support for any issues', 'Hỗ trợ khách hàng mọi lúc khi có sự cố'],
+  ['The Future of', 'Tương lai của'],
+  ['Drone Delivery', 'Giao hàng bằng drone'],
+  [
+    'Revolutionize your delivery operations with our intelligent drone management platform.',
+    'Đổi mới hoạt động giao hàng bằng nền tảng quản lý drone thông minh.',
+  ],
+  ['Real-time tracking, fleet optimization, and advanced analytics all in one place.', 'Theo dõi thời gian thực, tối ưu đội drone và phân tích nâng cao trong một nơi.'],
+  ['Get Started Free', 'Bắt đầu miễn phí'],
+  ['Trusted by 500+ Companies', 'Được hơn 500 công ty tin dùng'],
+  ['Industry Leading Technology', 'Công nghệ dẫn đầu ngành'],
+  ['Bank-Grade Security', 'Bảo mật cấp ngân hàng'],
+  ['Powerful Features', 'Tính năng mạnh mẽ'],
+  ['Everything you need to manage and scale your drone delivery operations', 'Mọi thứ bạn cần để quản lý và mở rộng hoạt động giao hàng bằng drone'],
+  ['Active Companies', 'Công ty đang hoạt động'],
+  ['Deliveries Completed', 'Đơn đã hoàn thành'],
+  ['Uptime Guaranteed', 'Cam kết thời gian hoạt động'],
+  ['Ready to Transform Your Delivery?', 'Sẵn sàng chuyển đổi hoạt động giao hàng?'],
+  ['Join thousands of companies already using our platform to streamline their operations', 'Tham gia cùng hàng nghìn công ty đang dùng nền tảng để tối ưu vận hành'],
+  ['Loading drones...', 'Đang tải drone...'],
+  ['Drone Fleet', 'Đội drone'],
+  ['Status:', 'Trạng thái:'],
+  ['Battery:', 'Pin:'],
+  ['Capacity:', 'Tải trọng:'],
+  ['Loading deliveries...', 'Đang tải đơn giao hàng...'],
+  ['Track delivery status and confirm receipt', 'Theo dõi tình trạng giao hàng và xác nhận nhận hàng'],
+  ['Create Delivery Order', 'Đăng ký đơn hàng'],
+  ['Select house', 'Chọn nhà'],
+  ['-- Select your house --', '-- Chọn nhà của bạn --'],
+  ['Order name', 'Tên đơn hàng'],
+  ['Example: documents, food', 'Ví dụ: Tài liệu, thực phẩm'],
+  ['Payload (kg)', 'Tải trọng (kg)'],
+  ['Example: 2.5', 'Ví dụ: 2.5'],
+  ['Full name:', 'Họ tên:'],
+  ['Phone number:', 'Số điện thoại:'],
+  ['Recent Deliveries', 'Đơn giao gần đây'],
+  ['Live', 'Trực tiếp'],
+  ['Order code', 'Mã đơn'],
+  ['Recipient', 'Người nhận'],
+  ['Delivery address', 'Địa chỉ giao'],
+  ['Created at', 'Tạo lúc'],
+  ['Delivered at', 'Giao lúc'],
+  ['Rating:', 'Đánh giá:'],
+  ['Your comment (optional)', 'Nhận xét của bạn (tùy chọn)'],
+  ['My Profile', 'Hồ sơ của tôi'],
+  ['Personal Information', 'Thông tin cá nhân'],
+  ['Phone', 'Số điện thoại'],
+  ['Change Password', 'Đổi mật khẩu'],
+  ['Old Password', 'Mật khẩu cũ'],
+  ['New Password', 'Mật khẩu mới'],
+  ['Confirm Password', 'Xác nhận mật khẩu'],
+  ['Loading admin panel...', 'Đang tải bảng quản trị...'],
+  ['Manage your drone delivery system', 'Quản lý hệ thống giao hàng bằng drone'],
+  ['Total Users', 'Tổng người dùng'],
+  ['Total System Users:', 'Tổng người dùng hệ thống:'],
+  ['Registered Locations:', 'Vị trí đã đăng ký:'],
+  ['Active Drones:', 'Drone đang hoạt động:'],
+  ['Delivery Status:', 'Trạng thái giao hàng:'],
+  ['Loading users...', 'Đang tải người dùng...'],
+  ['User Management', 'Quản lý người dùng'],
+  ['Manage all system users', 'Quản lý toàn bộ người dùng hệ thống'],
+  ['Admins', 'Quản trị viên'],
+  ['Operators', 'Nhân viên vận hành'],
+  ['Customers', 'Khách hàng'],
+  ['Search', 'Tìm kiếm'],
+  ['Name, Email, Phone...', 'Tên, email, số điện thoại...'],
+  ['Filter by Role', 'Lọc theo vai trò'],
+  ['All Roles', 'Tất cả vai trò'],
+  ['Sort by', 'Sắp xếp theo'],
+  ['Newest', 'Mới nhất'],
+  ['Name', 'Tên'],
+  ['Email', 'Email'],
+  ['Joined', 'Ngày tham gia'],
+  ['Actions', 'Hành động'],
+  ['Orders', 'Đơn hàng'],
+  ['Manage orders and send them to Drone Map for delivery optimization', 'Quản lý đơn hàng và đưa vào bản đồ drone để tối ưu giao hàng'],
+  ['Total orders', 'Tổng đơn hàng'],
+  ['Total payload', 'Tổng tải trọng'],
+  ['Pending status', 'Trạng thái đang chờ'],
+  ['Order list', 'Danh sách đơn hàng'],
+  ['Loading orders...', 'Đang tải đơn hàng...'],
+  ['No orders yet', 'Chưa có đơn hàng nào'],
+  ['House', 'Nhà'],
+  ['Loading houses...', 'Đang tải nhà...'],
+  ['Register House', 'Đăng ký Căn Nhà'],
+  ['Address:', 'Địa chỉ:'],
+  ['Enter full name', 'Nhập họ và tên'],
+  ['Enter phone number', 'Nhập số điện thoại'],
+  ['Enter email', 'Nhập email'],
+  ['Delivery progress', 'Tiến độ giao hàng'],
+  ['Current delivery stop', 'Điểm giao hàng hiện tại'],
+  ['Delivery completed', 'Hoàn thành giao hàng'],
+  ['Search owner', 'Tìm kiếm chủ sở hữu'],
+  ['Owner name', 'Tên chủ sở hữu'],
+  ['Phone number', 'Số điện thoại'],
+  ['Go back', 'Quay về trang trước'],
+  ['Back', 'Quay lại'],
+  ['Results', 'Kết quả'],
+  ['Clear all', 'Xóa tất cả'],
+  ['Optimizing...', 'Đang tối ưu...'],
+  ['Optimize route', 'Tối ưu lộ trình'],
+  ['Start delivery', 'Bắt đầu giao hàng'],
+  ['Continue', 'Tiếp tục'],
+  ['Pause', 'Tạm dừng'],
+  ['Stop delivery', 'Dừng giao hàng'],
+  ['Delivering', 'Đang giao hàng'],
+  ['Running', 'Đang chạy'],
+  ['Delivery history', 'Lịch sử giao hàng'],
+  ['Delivered:', 'Đã giao:'],
+  ['Notification ID:', 'Thông báo ID:'],
+  ['Total:', 'Tổng cộng:'],
+  ['points', 'điểm'],
+  ['Cancel', 'Hủy'],
+  ['Processing...', 'Đang xử lý...'],
+  ['Register house', 'Đăng ký căn nhà'],
+  ['Search', 'Tìm kiếm'],
+  ['No owner yet', 'Chưa có chủ sở hữu'],
+  ['Remove selection', 'Bỏ chọn'],
+  ['Selected', 'Đã chọn'],
+  ['House selected successfully', 'Chọn căn nhà thành công'],
+  ['House unselected', 'Bỏ chọn căn nhà'],
+  ['Cannot change order', 'Không thể thay đổi đơn hàng'],
+  ['No selected orders', 'Không có order nào được chọn'],
+  ['Cannot clear orders', 'Không thể xóa orders'],
+  ['Please create a route first', 'Vui lòng tạo lộ trình trước'],
+  ['Starting delivery...', 'Bắt đầu giao hàng...'],
+  ['House not found', 'Không tìm thấy căn nhà'],
+  ['Returning to depot...', 'Trở về depot...'],
+  ['Delivery interrupted', 'Giao hàng bị gián đoạn'],
+  ['Cannot find this house', 'Không tìm thấy căn nhà'],
+  ['This house has no owner', 'Căn nhà này chưa có chủ sở hữu'],
+  ['Cannot select house', 'Lỗi khi chọn căn nhà'],
+  ['Cannot claim house', 'Lỗi khi claim căn nhà'],
+  ['Delivery successful', 'Giao hàng thành công'],
+  ['Delivery successful at', 'Giao thành công tại'],
+  ['Notification failed', 'Thông báo gửi gặp lỗi'],
+  ['Refresh', 'Lam moi'],
+  ['Apply all to Drone Map', 'Ap dung tat ca vao Drone Map'],
+  ['Unknown address', 'Khong ro dia chi'],
+  ['Order name', 'Ten don'],
+  ['Total orders:', 'Tong so don:'],
+  ['Register order', 'Dang ky don hang'],
+  ['Please enter all required information', 'Vui long nhap du thong tin'],
+  ['Order registered successfully', 'Dang ky don hang thanh cong'],
+  ['Cannot create order', 'Khong the tao don hang'],
+  ['Cannot load orders', 'Khong the tai danh sach don hang'],
+  ['Last updated', 'Cập nhật lần cuối'],
+  ['Live status for your orders', 'Trạng thái trực tiếp cho đơn hàng của bạn'],
+  ['Search by tracking code, address, or receiver', 'Tìm theo mã theo dõi, địa chỉ hoặc người nhận'],
+  ['No tracking records found', 'Không tìm thấy thông tin theo dõi'],
+  ['Tracking code', 'Mã theo dõi'],
+  ['Pending', 'Đang chờ'],
+  ['Assigned', 'Đã phân tuyến'],
+  ['In transit', 'Đang giao'],
+  ['Delivered', 'Đã giao'],
+  ['Failed', 'Thất bại'],
+  ['Cancelled', 'Đã hủy'],
+  ['Order created', 'Đã tạo đơn'],
+  ['Route assigned', 'Đã phân tuyến'],
+  ['Drone in transit', 'Drone đang giao'],
+  ['Package', 'Gói hàng'],
+  ['Route stop', 'Điểm dừng lộ trình'],
+  ['No valid coordinates found', 'Không tìm thấy tọa độ hợp lệ'],
+  ['Added {count} houses successfully!', 'Đã thêm {count} căn nhà thành công!'],
+  ['Failed to add houses', 'Không thể thêm căn nhà'],
+  ['Delivery ID', 'Mã giao hàng'],
+  ['Profile updated successfully', 'Cập nhật hồ sơ thành công'],
+  ['Update failed', 'Cập nhật thất bại'],
+  ['Passwords do not match', 'Mật khẩu không khớp'],
+  ['Password changed successfully', 'Đổi mật khẩu thành công'],
+  ['Change password failed', 'Đổi mật khẩu thất bại'],
+  ['Edit', 'Sửa'],
+  ['Change', 'Đổi'],
+  ['Saving...', 'Đang lưu...'],
+  ['Save Changes', 'Lưu thay đổi'],
+  ['Not set', 'Chưa thiết lập'],
+  ['Updating...', 'Đang cập nhật...'],
+  ['Update Password', 'Cập nhật mật khẩu'],
+  ['Failed to fetch statistics', 'Không thể tải thống kê'],
+  ['Manage Users', 'Quản lý người dùng'],
+  ['View, edit, and manage system users', 'Xem, sửa và quản lý người dùng hệ thống'],
+  ['Manage Orders', 'Quản lý đơn hàng'],
+  ['Review orders and push to Drone Map', 'Xem đơn hàng và đưa vào Drone Map'],
+  ['Manage Locations', 'Quản lý vị trí'],
+  ['Add and manage delivery locations', 'Thêm và quản lý vị trí giao hàng'],
+  ['Go to', 'Đi tới'],
+  ['System Information', 'Thông tin hệ thống'],
+  ['users', 'người dùng'],
+  ['locations', 'vị trí'],
+  ['drones', 'drone'],
+  ['active', 'đang hoạt động'],
+  ['total', 'tổng'],
+  ['Failed to fetch users', 'Không thể tải người dùng'],
+  ['Are you sure you want to delete this user?', 'Bạn có chắc muốn xóa người dùng này?'],
+  ['User deleted successfully', 'Xóa người dùng thành công'],
+  ['Failed to delete user', 'Không thể xóa người dùng'],
+  ['User updated successfully', 'Cập nhật người dùng thành công'],
+  ['Failed to update user', 'Không thể cập nhật người dùng'],
+  ['No users found', 'Không tìm thấy người dùng'],
+  ['Save', 'Lưu'],
+  ['Showing', 'Hiển thị'],
+  ['of', 'trên'],
+  ['Please select a star rating before confirming.', 'Vui long chon so sao danh gia truoc khi xac nhan.'],
+  ['Cannot confirm order', 'Loi xac nhan don hang'],
+  ['Rating', 'Danh gia'],
+  ['Processing', 'Dang xu ly'],
+  ['Confirm receipt', 'Xac nhan da nhan hang'],
+  ['Confirmed at', 'Da xac nhan luc'],
+  ['Comment', 'Nhan xet'],
+  ['House Coordinate Management', 'Quản lý Tọa độ Căn nhà'],
+  ['Add or update house coordinates in the system', 'Thêm hoặc cập nhật tọa độ các căn nhà trong hệ thống'],
+  ['Enter Coordinates', 'Nhập Tọa độ'],
+  ['Format: lat, lng (one coordinate per line)', 'Định dạng: lat, lng (mỗi dòng một tọa độ)'],
+  ['Tip:', 'Gợi ý:'],
+  ['Paste the coordinates below:', 'Dán các tọa độ dưới đây:'],
+  ['Adding...', 'Đang thêm...'],
+  ['Add', 'Thêm'],
+  ['houses', 'căn nhà'],
+  ['Delete', 'Xóa'],
+  ['Preview', 'Xem trước'],
+  ['No coordinates entered yet', 'Chưa có tọa độ nào được nhập'],
+  ['House #', 'Căn nhà #'],
+  ['Ready to add', 'Sẵn sàng thêm'],
+  ['houses to the system', 'căn nhà vào hệ thống'],
+  ['Information', 'Thông tin'],
+  ['Each coordinate must be:', 'Mỗi tọa độ phải là:'],
+  ['New houses will be numbered automatically from the current highest ID', 'Các căn nhà sẽ được tự động đánh số ID từ cao nhất hiện tại'],
+  ['All new houses will be in "not registered" status', 'Tất cả căn nhà mới sẽ ở trạng thái "chưa đăng ký"'],
+  ['You can add multiple batches without duplicate concerns', 'Bạn có thể thêm nhiều lần, không lo trùng lặp'],
+  ['Drone Delivery Map', 'Drone Delivery Map'],
+  ['Vinhomes, Hanoi', 'Vinhomes, Hà Nội'],
+  ['Order information', 'Thông tin đơn hàng'],
+  ['Total houses:', 'Tổng căn nhà:'],
+  ['Selected:', 'Đã chọn:'],
+  ['Route:', 'Lộ trình:'],
+  ['Legend', 'Chú thích'],
+  ['Not registered', 'Chưa đăng ký'],
+  ['Registered', 'Đã đăng ký'],
+  ['Selected for delivery', 'Chọn giao hàng'],
+  ['Selected for delivery', 'Đã chọn giao hàng'],
+  ['Drone delivering', 'Drone đang giao hàng'],
+]
+
+const phraseAliases = [
+  ['Theo doi tinh trang giao hang va xac nhan nhan hang', 'Track delivery status and confirm receipt', 'Theo dõi tình trạng giao hàng và xác nhận nhận hàng'],
+  ['Chon nha', 'Select house', 'Chọn nhà'],
+  ['-- Chon nha cua ban --', '-- Select your house --', '-- Chọn nhà của bạn --'],
+  ['Ten don hang', 'Order name', 'Tên đơn hàng'],
+  ['Vi du: Tai lieu, thuc pham', 'Example: documents, food', 'Ví dụ: Tài liệu, thực phẩm'],
+  ['Tai trong (kg)', 'Payload (kg)', 'Tải trọng (kg)'],
+  ['Vi du: 2.5', 'Example: 2.5', 'Ví dụ: 2.5'],
+  ['Ho ten:', 'Full name:', 'Họ tên:'],
+  ['So dien thoai:', 'Phone number:', 'Số điện thoại:'],
+  ['Ma don', 'Order code', 'Mã đơn'],
+  ['Nguoi nhan', 'Recipient', 'Người nhận'],
+  ['Dia chi giao', 'Delivery address', 'Địa chỉ giao'],
+  ['Tao luc', 'Created at', 'Tạo lúc'],
+  ['Giao luc', 'Delivered at', 'Giao lúc'],
+  ['Danh gia:', 'Rating:', 'Đánh giá:'],
+  ['Nhan xet cua ban (tuy chon)', 'Your comment (optional)', 'Nhận xét của bạn (tùy chọn)'],
+  ['Don hang', 'Orders', 'Đơn hàng'],
+  ['Quan ly don hang va dua vao Drone Map de toi uu giao hang', 'Manage orders and send them to Drone Map for delivery optimization', 'Quản lý đơn hàng và đưa vào bản đồ drone để tối ưu giao hàng'],
+  ['Tong don hang', 'Total orders', 'Tổng đơn hàng'],
+  ['Tong tai trong', 'Total payload', 'Tổng tải trọng'],
+  ['Trang thai dang cho', 'Pending status', 'Trạng thái đang chờ'],
+  ['Danh sach don hang', 'Order list', 'Danh sách đơn hàng'],
+  ['Dang tai don hang...', 'Loading orders...', 'Đang tải đơn hàng...'],
+  ['Chua co don hang nao', 'No orders yet', 'Chưa có đơn hàng nào'],
+  ['Nha', 'House', 'Nhà'],
+  ['Đăng ký Căn Nhà', 'Register House', 'Đăng ký Căn Nhà'],
+  ['Họ và tên', 'Full name', 'Họ và tên'],
+  ['Hủy', 'Cancel', 'Hủy'],
+  ['Đang xử lý...', 'Processing...', 'Đang xử lý...'],
+  ['✓ Đăng ký căn nhà', 'Register house', '✓ Đăng ký căn nhà'],
+  ['Đang giao hàng', 'Delivering', 'Đang giao hàng'],
+  ['Tạm dừng', 'Pause', 'Tạm dừng'],
+  ['Đang chạy', 'Running', 'Đang chạy'],
+  ['Tiến độ giao hàng', 'Delivery progress', 'Tiến độ giao hàng'],
+  ['Đã giao:', 'Delivered:', 'Đã giao:'],
+  ['Điểm giao hàng hiện tại', 'Current delivery stop', 'Điểm giao hàng hiện tại'],
+  ['Lịch sử giao hàng', 'Delivery history', 'Lịch sử giao hàng'],
+  ['Thông báo ID:', 'Notification ID:', 'Thông báo ID:'],
+  ['Hoàn thành giao hàng', 'Delivery completed', 'Hoàn thành giao hàng'],
+  ['Tổng cộng:', 'Total:', 'Tổng cộng:'],
+  ['Tìm kiếm chủ sở hữu', 'Search owner', 'Tìm kiếm chủ sở hữu'],
+  ['Tìm kiếm', 'Search', 'Tìm kiếm'],
+  ['Kết quả', 'Results', 'Kết quả'],
+  ['Xóa tất cả', 'Clear all', 'Xóa tất cả'],
+  ['Đang tối ưu...', 'Optimizing...', 'Đang tối ưu...'],
+  ['Tối ưu lộ trình', 'Optimize route', 'Tối ưu lộ trình'],
+  ['Bắt đầu giao hàng', 'Start delivery', 'Bắt đầu giao hàng'],
+  ['Tiếp tục', 'Continue', 'Tiếp tục'],
+  ['Dừng giao hàng', 'Stop delivery', 'Dừng giao hàng'],
+  ['Chưa có chủ sở hữu', 'No owner yet', 'Chưa có chủ sở hữu'],
+  ['Bỏ chọn', 'Remove selection', 'Bỏ chọn'],
+  ['Đã chọn', 'Selected', 'Đã chọn'],
+  ['Lam moi', 'Refresh', 'Làm mới'],
+  ['Ap dung tat ca vao Drone Map', 'Apply all to Drone Map', 'Áp dụng tất cả vào Drone Map'],
+  ['Khong ro dia chi', 'Unknown address', 'Không rõ địa chỉ'],
+  ['Tong so don:', 'Total orders:', 'Tổng số đơn:'],
+  ['Dang ky don hang', 'Register order', 'Đăng ký đơn hàng'],
+  ['Dang xu ly...', 'Processing...', 'Đang xử lý...'],
+  ['Xac nhan da nhan hang', 'Confirm receipt', 'Xác nhận đã nhận hàng'],
+  ['Da xac nhan luc', 'Confirmed at', 'Đã xác nhận lúc'],
+  ['Quan ly Tọa độ Căn nhà', 'House Coordinate Management', 'Quản lý Tọa độ Căn nhà'],
+]
+
+const buildDictionary = () => {
+  const en = {}
+  const vi = {}
+  const replacements = { en: [], vi: [] }
+
+  const addReplacement = (source, target, lang) => {
+    if (!source || !target || source === target) return
+    replacements[lang].push([source, target])
+  }
+
+  phrasePairs.forEach(([english, vietnamese]) => {
+    en[english] = english
+    en[vietnamese] = english
+    vi[english] = vietnamese
+    vi[vietnamese] = vietnamese
+    addReplacement(vietnamese, english, 'en')
+    addReplacement(english, vietnamese, 'vi')
+  })
+
+  phraseAliases.forEach(([alias, english, vietnamese]) => {
+    en[alias] = english
+    vi[alias] = vietnamese
+    addReplacement(alias, english, 'en')
+    addReplacement(alias, vietnamese, 'vi')
+  })
+
+  replacements.en.sort((a, b) => b[0].length - a[0].length)
+  replacements.vi.sort((a, b) => b[0].length - a[0].length)
+
+  return { en, vi, replacements }
+}
+
+const dictionaries = buildDictionary()
+
+const LanguageContext = createContext(null)
+
+const normalizeText = (text) => text.replace(/\s+/g, ' ').trim()
+
+const translatePhrase = (text, lang) => {
+  const normalized = normalizeText(text)
+  const exact = dictionaries[lang]?.[normalized]
+  if (exact) return exact
+
+  return dictionaries.replacements[lang].reduce((result, [source, target]) => {
+    return result.includes(source) ? result.split(source).join(target) : result
+  }, text)
+}
+
+export function LanguageProvider({ children }) {
+  const [language, setLanguageState] = useState(() => localStorage.getItem('language') || 'vi')
+
+  const setLanguage = useCallback((nextLanguage) => {
+    const normalizedLanguage = LANGUAGES[nextLanguage] ? nextLanguage : 'vi'
+    localStorage.setItem('language', normalizedLanguage)
+    setLanguageState(normalizedLanguage)
+  }, [])
+
+  const t = useCallback((text, values = {}) => {
+    const translated = translatePhrase(text, language)
+    return Object.entries(values).reduce(
+      (result, [key, value]) => result.replaceAll(`{${key}}`, value),
+      translated
+    )
+  }, [language])
+
+  useEffect(() => {
+    document.documentElement.lang = language
+    document.documentElement.setAttribute('data-language', language)
+  }, [language])
+
+  const value = useMemo(() => ({
+    language,
+    locale: LANGUAGES[language].locale,
+    setLanguage,
+    t,
+  }), [language, setLanguage, t])
+
+  return (
+    <LanguageContext.Provider value={value}>
+      {children}
+    </LanguageContext.Provider>
+  )
+}
+
+export function useLanguage() {
+  const context = useContext(LanguageContext)
+  if (!context) {
+    throw new Error('useLanguage must be used inside LanguageProvider')
+  }
+  return context
+}

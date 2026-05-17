@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { loginAccount } from '../services/api'
 import { useAuth } from '../hooks/useAuth'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export default function Login() {
   const [formData, setFormData] = useState({ Email: '', Password: '' })
@@ -10,6 +12,7 @@ export default function Login() {
   const [focusedField, setFocusedField] = useState(null)
   const navigate = useNavigate()
   const { login } = useAuth()
+  const { t } = useLanguage()
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -26,7 +29,7 @@ export default function Login() {
       login(account, token)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed')
+      setError(err.response?.data?.message || t('Login failed'))
     } finally {
       setLoading(false)
     }
@@ -39,6 +42,9 @@ export default function Login() {
       <div className="absolute -bottom-8 -right-10 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
       
       <div className="card-auth animate-fadeIn relative z-10">
+        <div className="mb-6 flex justify-end">
+          <LanguageSwitcher compact />
+        </div>
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4 shadow-lg">
@@ -46,8 +52,8 @@ export default function Login() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Welcome Back</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{t('Welcome Back')}</h1>
+          <p className="text-gray-600 mt-2">{t('Sign in to your account')}</p>
         </div>
 
         {/* Error Message */}
@@ -71,7 +77,7 @@ export default function Login() {
                   <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
                   <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
                 </svg>
-                Email Address
+                {t('Email Address')}
               </span>
             </label>
             <input
@@ -82,11 +88,11 @@ export default function Login() {
               onFocus={() => setFocusedField('email')}
               onBlur={() => setFocusedField(null)}
               className="input-field mt-2"
-              placeholder="Enter your email"
+              placeholder={t('Enter your email')}
               required
             />
             {focusedField === 'email' && (
-              <div className="absolute -bottom-5 left-0 text-xs text-blue-500 animate-fadeIn">We'll never share your email</div>
+              <div className="absolute -bottom-5 left-0 text-xs text-blue-500 animate-fadeIn">{t("We'll never share your email")}</div>
             )}
           </div>
 
@@ -97,7 +103,7 @@ export default function Login() {
                 <svg className="w-5 h-5 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                 </svg>
-                Password
+                {t('Password')}
               </span>
             </label>
             <input
@@ -108,7 +114,7 @@ export default function Login() {
               onFocus={() => setFocusedField('password')}
               onBlur={() => setFocusedField(null)}
               className="input-field mt-2"
-              placeholder="Enter your password"
+              placeholder={t('Enter your password')}
               required
             />
           </div>
@@ -124,11 +130,11 @@ export default function Login() {
                 <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Logging in...
+                {t('Logging in...')}
               </>
             ) : (
               <>
-                <span>Login</span>
+                <span>{t('Login')}</span>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
@@ -140,9 +146,9 @@ export default function Login() {
         {/* Sign Up Link */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-center text-gray-600">
-            Don't have an account?{' '}
+            {t("Don't have an account?")}{' '}
             <Link to="/signup" className="btn-link group">
-              <span>Sign up now</span>
+              <span>{t('Sign up now')}</span>
             </Link>
           </p>
         </div>

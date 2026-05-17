@@ -2,11 +2,15 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import LanguageSwitcher from './LanguageSwitcher'
+import { useLanguage } from '../i18n/LanguageContext'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL
+const ORDER_API_BASE = import.meta.env.VITE_API_ORDER_URL || import.meta.env.VITE_API_BASE_URL
+const NOTIFICATION_API_BASE = import.meta.env.VITE_API_NOTIFICATION_URL || import.meta.env.VITE_API_BASE_URL
 
 export default function Navbar() {
   const { user, token, logout } = useAuth()
+  const { locale, t } = useLanguage()
   const navigate = useNavigate()
   const [showMenu, setShowMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -27,7 +31,7 @@ export default function Navbar() {
 
     const fetchOwnerHouses = async () => {
       try {
-        const housesRes = await axios.post(`${API_BASE}/location/houses/search-customer`, {
+        const housesRes = await axios.post(`${ORDER_API_BASE}/location/houses/search-customer`, {
           phone: user?.Phone,
           email: user?.Email
         })
@@ -64,7 +68,7 @@ export default function Navbar() {
 
   const fetchNotifications = async () => {
     if (!isOwner || userHouses.length === 0) {
-      alert('Bạn không phải là chủ sở hữu nhà. Chỉ chủ sở hữu mới có thể xem thông báo giao hàng của mình.')
+      alert(t('Bạn không phải là chủ sở hữu nhà. Chỉ chủ sở hữu mới có thể xem thông báo giao hàng của mình.'))
       return
     }
 
@@ -74,7 +78,7 @@ export default function Navbar() {
 
       for (const house of userHouses) {
         try {
-          const response = await axios.get(`${API_BASE}/location/notifications?houseId=${house._id}&limit=20&page=1`)
+          const response = await axios.get(`${NOTIFICATION_API_BASE}/location/notifications?houseId=${house._id}&limit=20&page=1`)
           if (response.data.notifications) {
             allNotifications.push(...response.data.notifications)
           }
@@ -87,7 +91,7 @@ export default function Navbar() {
       setNotifications(allNotifications)
     } catch (error) {
       console.error('Error fetching notifications:', error)
-      alert('Lỗi: Không thể tải thông báo')
+      alert(t('Lỗi: Không thể tải thông báo'))
     } finally {
       setNotificationsLoading(false)
     }
@@ -126,8 +130,9 @@ export default function Navbar() {
 
           <div className="flex items-center space-x-6">
             <span className="text-sm text-gray-600">
-              Welcome, <span className="font-bold text-gray-900">{user?.FullName}</span>
+              {t('Welcome,')} <span className="font-bold text-gray-900">{user?.FullName}</span>
             </span>
+            <LanguageSwitcher compact />
             
             {/* Notification Bell */}
             <div className="relative" ref={notificationsRef}>
@@ -209,7 +214,7 @@ export default function Navbar() {
                                 {notif.message}
                               </p>
                               <p className="text-xs text-gray-500 mt-2">
-                                {new Date(notif.sentAt).toLocaleString('vi-VN')}
+                                {new Date(notif.sentAt).toLocaleString(locale)}
                               </p>
                             </div>
                           </div>

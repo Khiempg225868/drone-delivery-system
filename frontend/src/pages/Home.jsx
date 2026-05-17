@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export default function Home() {
   const navigate = useNavigate()
   const { account } = useAuth()
+  const { t } = useLanguage()
   const [hoveredFeature, setHoveredFeature] = useState(null)
 
   // If user is logged in, redirect to dashboard
@@ -76,18 +79,19 @@ export default function Home() {
             </h1>
           </div>
           
-          <div className="flex gap-4">
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher compact />
             <button
               onClick={() => navigate('/login')}
               className="px-6 py-2.5 text-white font-semibold rounded-lg border-2 border-white/30 hover:border-white/60 transition-all duration-300 hover:bg-white/10"
             >
-              Login
+              {t('Login')}
             </button>
             <button
               onClick={() => navigate('/signup')}
               className="btn-primary px-6 py-2.5"
             >
-              Sign Up
+              {t('Sign Up')}
             </button>
           </div>
         </nav>
@@ -108,18 +112,18 @@ export default function Home() {
             {/* Main Heading */}
             <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight">
               <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                The Future of
+                {t('The Future of')}
               </span>
               <br />
               <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-                Drone Delivery
+                {t('Drone Delivery')}
               </span>
             </h1>
 
             {/* Subheading */}
             <p className="text-lg md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Revolutionize your delivery operations with our intelligent drone management platform. 
-              Real-time tracking, fleet optimization, and advanced analytics all in one place.
+              {t('Revolutionize your delivery operations with our intelligent drone management platform.')} 
+              {t('Real-time tracking, fleet optimization, and advanced analytics all in one place.')}
             </p>
 
             {/* CTA Buttons */}
@@ -128,13 +132,13 @@ export default function Home() {
                 onClick={() => navigate('/signup')}
                 className="btn-primary px-8 py-3 text-lg shadow-2xl shadow-blue-500/50 transform hover:scale-105"
               >
-                Get Started Free
+                {t('Get Started Free')}
               </button>
               <button
                 onClick={() => navigate('/login')}
                 className="px-8 py-3 text-lg font-semibold text-white rounded-lg border-2 border-white/30 hover:border-white/60 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
               >
-                Sign In
+                {t('Sign In')}
               </button>
             </div>
 

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { LanguageProvider } from './i18n/LanguageContext'
 import Navbar from './components/Navbar'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -17,12 +18,14 @@ import DroneMap from './pages/DroneMap'
 import AdminPanel from './pages/AdminPanel'
 import AdminUsers from './pages/AdminUsers'
 import AdminLocations from './pages/AdminLocations'
+import AdminOrders from './pages/AdminOrders'
 
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
+      <LanguageProvider>
+        <AuthProvider>
+          <Routes>
           {/* Public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -114,8 +117,20 @@ function App() {
               </AdminRoute>
             }
           />
-        </Routes>
-      </AuthProvider>
+          <Route
+            path="/admin/orders"
+            element={
+              <AdminRoute>
+                <Navbar />
+                <Layout>
+                  <AdminOrders />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          </Routes>
+        </AuthProvider>
+      </LanguageProvider>
     </BrowserRouter>
   )
 }

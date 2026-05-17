@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { createAccount } from '../services/api'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -15,6 +17,7 @@ export default function Signup() {
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState(null)
   const navigate = useNavigate()
+  const { t } = useLanguage()
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -29,7 +32,7 @@ export default function Signup() {
       await createAccount(formData)
       navigate('/login')
     } catch (err) {
-      setError(err.response?.data?.message || 'Signup failed')
+      setError(err.response?.data?.message || t('Signup failed'))
     } finally {
       setLoading(false)
     }
@@ -42,6 +45,9 @@ export default function Signup() {
       <div className="absolute bottom-20 left-10 w-72 h-72 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
 
       <div className="card-auth animate-fadeIn relative z-10">
+        <div className="mb-6 flex justify-end">
+          <LanguageSwitcher compact />
+        </div>
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full mb-4 shadow-lg">
@@ -49,8 +55,8 @@ export default function Signup() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Create Account</h1>
-          <p className="text-gray-600 mt-2">Join us and start delivering</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{t('Create Account')}</h1>
+          <p className="text-gray-600 mt-2">{t('Join us and start delivering')}</p>
         </div>
 
         {/* Error Message */}
@@ -73,7 +79,7 @@ export default function Signup() {
                 <svg className="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                 </svg>
-                Full Name
+                {t('Full Name')}
               </span>
             </label>
             <input
@@ -84,7 +90,7 @@ export default function Signup() {
               onFocus={() => setFocusedField('fullname')}
               onBlur={() => setFocusedField(null)}
               className="input-field mt-2"
-              placeholder="Enter your full name"
+              placeholder={t('Enter your full name')}
               required
             />
           </div>
@@ -97,7 +103,7 @@ export default function Signup() {
                   <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
                   <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
                 </svg>
-                Email Address
+                {t('Email Address')}
               </span>
             </label>
             <input
@@ -108,7 +114,7 @@ export default function Signup() {
               onFocus={() => setFocusedField('email')}
               onBlur={() => setFocusedField(null)}
               className="input-field mt-2"
-              placeholder="Enter your email"
+              placeholder={t('Enter your email')}
               required
             />
           </div>
@@ -120,7 +126,7 @@ export default function Signup() {
                 <svg className="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                 </svg>
-                Password
+                {t('Password')}
               </span>
             </label>
             <input
@@ -131,11 +137,11 @@ export default function Signup() {
               onFocus={() => setFocusedField('password')}
               onBlur={() => setFocusedField(null)}
               className="input-field mt-2"
-              placeholder="Create a strong password"
+              placeholder={t('Create a strong password')}
               required
             />
             {focusedField === 'password' && (
-              <p className="text-xs text-gray-500 mt-1 animate-fadeIn">At least 6 characters recommended</p>
+              <p className="text-xs text-gray-500 mt-1 animate-fadeIn">{t('At least 6 characters recommended')}</p>
             )}
           </div>
 
@@ -146,7 +152,7 @@ export default function Signup() {
                 <svg className="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773c.418 1.265 1.215 2.807 2.453 4.045s2.78 2.035 4.045 2.453l.773-1.548a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
                 </svg>
-                Phone Number
+                {t('Phone Number')}
               </span>
             </label>
             <input
@@ -157,7 +163,7 @@ export default function Signup() {
               onFocus={() => setFocusedField('phone')}
               onBlur={() => setFocusedField(null)}
               className="input-field mt-2"
-              placeholder="Enter your phone number"
+              placeholder={t('Enter your phone number')}
               required
             />
           </div>
@@ -169,7 +175,7 @@ export default function Signup() {
                 <svg className="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
                 </svg>
-                Role
+                {t('Role')}
               </span>
             </label>
             <select
@@ -178,9 +184,9 @@ export default function Signup() {
               onChange={handleChange}
               className="input-field mt-2"
             >
-              <option value="customer">Customer</option>
-              <option value="operator">Operator</option>
-              <option value="admin">Admin</option>
+              <option value="customer">{t('Customer')}</option>
+              <option value="operator">{t('Operator')}</option>
+              <option value="admin">{t('Admin')}</option>
             </select>
           </div>
 
@@ -191,7 +197,7 @@ export default function Signup() {
                 <svg className="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v2h16V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h12a1 1 0 100-2H6z" clipRule="evenodd" />
                 </svg>
-                Date of Birth
+                {t('Date of Birth')}
               </span>
             </label>
             <input
@@ -216,11 +222,11 @@ export default function Signup() {
                 <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Creating account...
+                {t('Creating account...')}
               </>
             ) : (
               <>
-                <span>Sign Up</span>
+                <span>{t('Sign Up')}</span>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
@@ -232,9 +238,9 @@ export default function Signup() {
         {/* Login Link */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-center text-gray-600">
-            Already have an account?{' '}
+            {t('Already have an account?')}{' '}
             <Link to="/login" className="btn-link group">
-              <span>Login here</span>
+              <span>{t('Login here')}</span>
             </Link>
           </p>
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAllAccounts, removeAccount, updateAccount } from '../services/api'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const RoleBadge = ({ role }) => {
   const colors = {
@@ -15,6 +16,7 @@ const RoleBadge = ({ role }) => {
 }
 
 export default function AdminUsers() {
+  const { locale, t } = useLanguage()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -35,7 +37,7 @@ export default function AdminUsers() {
       const response = await getAllAccounts()
       setUsers(response.data.accounts || response.data)
     } catch (error) {
-      setError('Failed to fetch users')
+      setError(t('Failed to fetch users'))
       console.error(error)
     } finally {
       setLoading(false)
@@ -43,14 +45,14 @@ export default function AdminUsers() {
   }
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm(t('Are you sure you want to delete this user?'))) {
       try {
         await removeAccount(userId)
-        setSuccess('User deleted successfully')
+        setSuccess(t('User deleted successfully'))
         fetchUsers()
         setTimeout(() => setSuccess(''), 3000)
       } catch (error) {
-        setError('Failed to delete user')
+        setError(t('Failed to delete user'))
         console.error(error)
       }
     }
@@ -59,13 +61,13 @@ export default function AdminUsers() {
   const handleEditSave = async (userId) => {
     try {
       await updateAccount(userId, editData)
-      setSuccess('User updated successfully')
+      setSuccess(t('User updated successfully'))
       setEditingId(null)
       setEditData({})
       fetchUsers()
       setTimeout(() => setSuccess(''), 3000)
     } catch (error) {
-      setError('Failed to update user')
+      setError(t('Failed to update user'))
       console.error(error)
     }
   }
@@ -102,7 +104,7 @@ export default function AdminUsers() {
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading users...</p>
+          <p className="text-gray-600">{t('Loading users...')}</p>
         </div>
       </div>
     )
@@ -112,8 +114,8 @@ export default function AdminUsers() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">👥 User Management</h1>
-        <p className="text-gray-600">Manage all system users</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">👥 {t('User Management')}</h1>
+        <p className="text-gray-600">{t('Manage all system users')}</p>
       </div>
 
       {/* Alerts */}
@@ -131,23 +133,23 @@ export default function AdminUsers() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 shadow">
-          <p className="text-blue-600 text-sm font-medium">Total Users</p>
+          <p className="text-blue-600 text-sm font-medium">{t('Total Users')}</p>
           <p className="text-3xl font-bold text-blue-900 mt-2">{users.length}</p>
         </div>
         <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-6 shadow">
-          <p className="text-red-600 text-sm font-medium">Admins</p>
+          <p className="text-red-600 text-sm font-medium">{t('Admins')}</p>
           <p className="text-3xl font-bold text-red-900 mt-2">
             {users.filter((u) => u.Role === 'admin').length}
           </p>
         </div>
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 shadow">
-          <p className="text-blue-600 text-sm font-medium">Operators</p>
+          <p className="text-blue-600 text-sm font-medium">{t('Operators')}</p>
           <p className="text-3xl font-bold text-blue-900 mt-2">
             {users.filter((u) => u.Role === 'operator').length}
           </p>
         </div>
         <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 shadow">
-          <p className="text-green-600 text-sm font-medium">Customers</p>
+          <p className="text-green-600 text-sm font-medium">{t('Customers')}</p>
           <p className="text-3xl font-bold text-green-900 mt-2">
             {users.filter((u) => u.Role === 'customer').length}
           </p>
@@ -158,10 +160,10 @@ export default function AdminUsers() {
       <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Search</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">{t('Search')}</label>
             <input
               type="text"
-              placeholder="Name, Email, Phone..."
+              placeholder={t('Name, Email, Phone...')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -169,30 +171,30 @@ export default function AdminUsers() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Role</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">{t('Filter by Role')}</label>
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              <option value="all">All Roles</option>
-              <option value="admin">Admin</option>
-              <option value="operator">Operator</option>
-              <option value="customer">Customer</option>
+              <option value="all">{t('All Roles')}</option>
+              <option value="admin">{t('Admin')}</option>
+              <option value="operator">{t('Operator')}</option>
+              <option value="customer">{t('Customer')}</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Sort by</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">{t('Sort by')}</label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              <option value="createdAt">Newest</option>
-              <option value="name">Name</option>
-              <option value="email">Email</option>
-              <option value="role">Role</option>
+              <option value="createdAt">{t('Newest')}</option>
+              <option value="name">{t('Name')}</option>
+              <option value="email">{t('Email')}</option>
+              <option value="role">{t('Role')}</option>
             </select>
           </div>
 
@@ -202,7 +204,7 @@ export default function AdminUsers() {
               onClick={fetchUsers}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition"
             >
-              🔄 Refresh
+              🔄 {t('Refresh')}
             </button>
           </div>
         </div>
@@ -214,19 +216,19 @@ export default function AdminUsers() {
           <table className="w-full">
             <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
               <tr>
-                <th className="px-6 py-4 text-left font-semibold">Name</th>
-                <th className="px-6 py-4 text-left font-semibold">Email</th>
-                <th className="px-6 py-4 text-left font-semibold">Phone</th>
-                <th className="px-6 py-4 text-left font-semibold">Role</th>
-                <th className="px-6 py-4 text-left font-semibold">Joined</th>
-                <th className="px-6 py-4 text-center font-semibold">Actions</th>
+                <th className="px-6 py-4 text-left font-semibold">{t('Name')}</th>
+                <th className="px-6 py-4 text-left font-semibold">{t('Email')}</th>
+                <th className="px-6 py-4 text-left font-semibold">{t('Phone')}</th>
+                <th className="px-6 py-4 text-left font-semibold">{t('Role')}</th>
+                <th className="px-6 py-4 text-left font-semibold">{t('Joined')}</th>
+                <th className="px-6 py-4 text-center font-semibold">{t('Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                    No users found
+                    {t('No users found')}
                   </td>
                 </tr>
               ) : (
@@ -262,16 +264,16 @@ export default function AdminUsers() {
                           }
                           className="px-2 py-1 border rounded"
                         >
-                          <option value="admin">Admin</option>
-                          <option value="operator">Operator</option>
-                          <option value="customer">Customer</option>
+                          <option value="admin">{t('Admin')}</option>
+                          <option value="operator">{t('Operator')}</option>
+                          <option value="customer">{t('Customer')}</option>
                         </select>
                       ) : (
                         <RoleBadge role={user.Role} />
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {new Date(user.createdAt).toLocaleDateString(locale)}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center space-x-2">
@@ -281,7 +283,7 @@ export default function AdminUsers() {
                               onClick={() => handleEditSave(user._id)}
                               className="px-3 py-1 bg-green-500 text-white rounded text-sm font-semibold hover:bg-green-600 transition"
                             >
-                              ✓ Save
+                              ✓ {t('Save')}
                             </button>
                             <button
                               onClick={() => {
@@ -290,7 +292,7 @@ export default function AdminUsers() {
                               }}
                               className="px-3 py-1 bg-gray-400 text-white rounded text-sm font-semibold hover:bg-gray-500 transition"
                             >
-                              ✕ Cancel
+                              ✕ {t('Cancel')}
                             </button>
                           </>
                         ) : (
@@ -299,13 +301,13 @@ export default function AdminUsers() {
                               onClick={() => startEdit(user)}
                               className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-semibold hover:bg-blue-600 transition"
                             >
-                              ✏️ Edit
+                              ✏️ {t('Edit')}
                             </button>
                             <button
                               onClick={() => handleDeleteUser(user._id)}
                               className="px-3 py-1 bg-red-500 text-white rounded text-sm font-semibold hover:bg-red-600 transition"
                             >
-                              🗑️ Delete
+                              🗑️ {t('Delete')}
                             </button>
                           </>
                         )}
@@ -321,8 +323,8 @@ export default function AdminUsers() {
 
       {/* Footer */}
       <div className="mt-4 text-sm text-gray-600">
-        Showing <span className="font-semibold">{filteredUsers.length}</span> of{' '}
-        <span className="font-semibold">{users.length}</span> users
+        {t('Showing')} <span className="font-semibold">{filteredUsers.length}</span> {t('of')}{' '}
+        <span className="font-semibold">{users.length}</span> {t('users')}
       </div>
     </div>
   )

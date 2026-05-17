@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const getMenuItems = (userRole) => {
   const baseItems = [
@@ -17,6 +18,7 @@ const getMenuItems = (userRole) => {
       { icon: '⚙️', label: 'Admin Panel', path: '/admin' },
       { icon: '👥', label: 'Users', path: '/admin/users' },
       { icon: '📍', label: 'Locations', path: '/admin/locations' },
+      { icon: '🧾', label: 'Orders', path: '/admin/orders' },
     ]
   }
 
@@ -27,6 +29,7 @@ export default function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(true)
   const location = useLocation()
   const { user } = useAuth()
+  const { t } = useLanguage()
   const menuItems = getMenuItems(user?.Role)
 
   return (
@@ -77,7 +80,7 @@ export default function Sidebar() {
               }`}
             >
               <span className="text-xl flex-shrink-0">{item.icon}</span>
-              {isExpanded && <span className="font-semibold">{item.label}</span>}
+              {isExpanded && <span className="font-semibold">{t(item.label)}</span>}
             </Link>
           )
         })}
@@ -87,7 +90,7 @@ export default function Sidebar() {
       {isExpanded && (
         <div className="p-4 border-t border-blue-600 text-sm text-blue-200">
           <p className="text-xs">© 2026 DroneFlow</p>
-          <p className="text-xs">Drone Delivery System</p>
+          <p className="text-xs">{t('Drone Delivery System')}</p>
         </div>
       )}
     </div>

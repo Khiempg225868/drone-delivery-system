@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { updateAccount, changePassword } from '../services/api'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export default function Profile() {
   const { user } = useAuth()
+  const { locale, t } = useLanguage()
   const [editMode, setEditMode] = useState(false)
   const [passwordMode, setPasswordMode] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -36,10 +38,10 @@ export default function Profile() {
     setLoading(true)
     try {
       await updateAccount(user._id, formData)
-      setMessage({ type: 'success', text: 'Profile updated successfully' })
+      setMessage({ type: 'success', text: t('Profile updated successfully') })
       setEditMode(false)
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Update failed' })
+      setMessage({ type: 'error', text: error.response?.data?.message || t('Update failed') })
     } finally {
       setLoading(false)
     }
@@ -48,7 +50,7 @@ export default function Profile() {
   const handleChangePassword = async (e) => {
     e.preventDefault()
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage({ type: 'error', text: 'Passwords do not match' })
+      setMessage({ type: 'error', text: t('Passwords do not match') })
       return
     }
 
@@ -61,11 +63,11 @@ export default function Profile() {
           newPassword: passwordData.newPassword
         }
       })
-      setMessage({ type: 'success', text: 'Password changed successfully' })
+      setMessage({ type: 'success', text: t('Password changed successfully') })
       setPasswordMode(false)
       setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' })
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Change password failed' })
+      setMessage({ type: 'error', text: error.response?.data?.message || t('Change password failed') })
     } finally {
       setLoading(false)
     }
@@ -74,7 +76,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-800 mb-8">My Profile</h1>
+        <h1 className="text-4xl font-bold text-gray-800 mb-8">{t('My Profile')}</h1>
 
         {message.text && (
           <div className={`px-4 py-3 rounded mb-4 ${
@@ -88,19 +90,19 @@ export default function Profile() {
 
         <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Personal Information</h2>
+            <h2 className="text-2xl font-bold">{t('Personal Information')}</h2>
             <button
               onClick={() => setEditMode(!editMode)}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
             >
-              {editMode ? 'Cancel' : 'Edit'}
+              {editMode ? t('Cancel') : t('Edit')}
             </button>
           </div>
 
           {editMode ? (
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Full Name</label>
+                <label className="block text-gray-700 font-semibold mb-2">{t('Full Name')}</label>
                 <input
                   type="text"
                   name="FullName"
@@ -111,7 +113,7 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Phone</label>
+                <label className="block text-gray-700 font-semibold mb-2">{t('Phone')}</label>
                 <input
                   type="tel"
                   name="Phone"
@@ -122,7 +124,7 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Date of Birth</label>
+                <label className="block text-gray-700 font-semibold mb-2">{t('Date of Birth')}</label>
                 <input
                   type="date"
                   name="DateOfBirth"
@@ -137,31 +139,31 @@ export default function Profile() {
                 disabled={loading}
                 className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition font-semibold disabled:bg-gray-400"
               >
-                {loading ? 'Saving...' : 'Save Changes'}
+                {loading ? t('Saving...') : t('Save Changes')}
               </button>
             </form>
           ) : (
             <div className="space-y-4">
               <div>
-                <p className="text-gray-500 text-sm">Full Name</p>
+                <p className="text-gray-500 text-sm">{t('Full Name')}</p>
                 <p className="text-lg font-semibold">{user?.FullName}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">Email</p>
+                <p className="text-gray-500 text-sm">{t('Email')}</p>
                 <p className="text-lg font-semibold">{user?.Email}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">Phone</p>
+                <p className="text-gray-500 text-sm">{t('Phone')}</p>
                 <p className="text-lg font-semibold">{user?.Phone}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">Role</p>
+                <p className="text-gray-500 text-sm">{t('Role')}</p>
                 <p className="text-lg font-semibold capitalize">{user?.Role}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">Date of Birth</p>
+                <p className="text-gray-500 text-sm">{t('Date of Birth')}</p>
                 <p className="text-lg font-semibold">
-                  {user?.DateOfBirth ? new Date(user.DateOfBirth).toLocaleDateString() : 'Not set'}
+                  {user?.DateOfBirth ? new Date(user.DateOfBirth).toLocaleDateString(locale) : t('Not set')}
                 </p>
               </div>
             </div>
@@ -170,19 +172,19 @@ export default function Profile() {
 
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Change Password</h2>
+            <h2 className="text-2xl font-bold">{t('Change Password')}</h2>
             <button
               onClick={() => setPasswordMode(!passwordMode)}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
             >
-              {passwordMode ? 'Cancel' : 'Change'}
+              {passwordMode ? t('Cancel') : t('Change')}
             </button>
           </div>
 
           {passwordMode && (
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Old Password</label>
+                <label className="block text-gray-700 font-semibold mb-2">{t('Old Password')}</label>
                 <input
                   type="password"
                   name="oldPassword"
@@ -194,7 +196,7 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">New Password</label>
+                <label className="block text-gray-700 font-semibold mb-2">{t('New Password')}</label>
                 <input
                   type="password"
                   name="newPassword"
@@ -206,7 +208,7 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Confirm Password</label>
+                <label className="block text-gray-700 font-semibold mb-2">{t('Confirm Password')}</label>
                 <input
                   type="password"
                   name="confirmPassword"
@@ -222,7 +224,7 @@ export default function Profile() {
                 disabled={loading}
                 className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition font-semibold disabled:bg-gray-400"
               >
-                {loading ? 'Updating...' : 'Update Password'}
+                {loading ? t('Updating...') : t('Update Password')}
               </button>
             </form>
           )}

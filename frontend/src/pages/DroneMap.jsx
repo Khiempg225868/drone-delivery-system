@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import axios from "axios"
 import { useToast, ToastContainer } from '../components/Toast'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import { useLanguage } from '../i18n/LanguageContext'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL
+const ORDER_API_BASE = import.meta.env.VITE_API_ORDER_URL || import.meta.env.VITE_API_BASE_URL
+const NOTIFICATION_API_BASE = import.meta.env.VITE_API_NOTIFICATION_URL || import.meta.env.VITE_API_BASE_URL
 
 // House icons: white (not registered), green (registered), red (selected)
 const houseIcon = (status) => {
@@ -80,6 +83,7 @@ function FitBounds({ points }) {
 export default function DroneMap() {
   const DEPOT = { lat: 21.001763, lng: 105.941928 }
   const navigate = useNavigate()
+  const location = useLocation()
   const [houses, setHouses] = useState([])
   const [activeIds, setActiveIds] = useState(new Set())
   const [route, setRoute] = useState([])
@@ -102,7 +106,9 @@ export default function DroneMap() {
   const [currentStopIndex, setCurrentStopIndex] = useState(0)
   const [deliveredCount, setDeliveredCount] = useState(0)
   const [deliveryLog, setDeliveryLog] = useState([])
+  const [autoApplied, setAutoApplied] = useState(false)
   const { toasts, showToast } = useToast()
+  const { t } = useLanguage()
 
   useEffect(() => {
     initializeHouses()
@@ -114,17 +120,17 @@ export default function DroneMap() {
       
       // Generate houses on first load
       try {
-        await axios.post(`${API_BASE}/location/houses/generate`)
+        await axios.post(`${ORDER_API_BASE}/location/houses/generate`)
       } catch (error) {
         // Houses already generated, continue
       }
 
       // Fetch all houses
-      const housesRes = await axios.get(`${API_BASE}/location/houses`)
+      const housesRes = await axios.get(`${ORDER_API_BASE}/location/houses`)
       setHouses(housesRes.data)
 
       // Get active orders
-      const ordersRes = await axios.get(`${API_BASE}/location/orders`)
+      const ordersRes = await axios.get(`${ORDER_API_BASE}/location/orders`)
       const activeHouseIds = new Set(
         ordersRes.data.map((o) => o.houseId || o.houseId?._id)
       )
@@ -139,7 +145,7 @@ export default function DroneMap() {
   const openClaimModal = (house) => {
     const authToken = localStorage.getItem('token')
     if (!authToken) {
-      showToast('❌ Bạn phải đăng nhập trước', 'error')
+      showToast(`❌ ${t('Bạn phải đăng nhập trước')}`, 'error')
       return
     }
 
@@ -174,7 +180,7 @@ export default function DroneMap() {
     setClaiming(true)
     try {
       await axios.post(
-        `${API_BASE}/location/houses/${claimModal.houseId}/register-owner`,
+        `${ORDER_API_BASE}/location/houses/${claimModal.houseId}/register-owner`,
         {
           name: claimModal.formData.name,
           phone: claimModal.formData.phone,
@@ -204,15 +210,15 @@ export default function DroneMap() {
 
     const isActive = activeIds.has(house._id)
     try {
-      const response = await axios.post(`${API_BASE}/location/orders/toggle`, {
+      const response = await axios.post(`${ORDER_API_BASE}/location/orders/toggle`, {
         houseId: house._id,
         lat: house.lat,
         lng: house.lng,
         action: isActive ? "remove" : "add",
       })
 
-      if (response.data.orders && Array.isArray(response.data.orders)) {
-        setActiveIds(new Set(response.data.orders))
+      if (response.data.houseIds && Array.isArray(response.data.houseIds)) {
+        setActiveIds(new Set(response.data.houseIds))
         setRoute([])
         setSequenceMap(new Map())
         showToast(
@@ -224,6 +230,15 @@ export default function DroneMap() {
       }
     } catch (error) {
       console.error("Error toggling order:", error)
+      if (error.response?.status === 400) {
+        try {
+          const ordersRes = await axios.get(`${ORDER_API_BASE}/location/orders`)
+          const houseIds = ordersRes.data.map((o) => o.houseId || o.houseId?._id)
+          setActiveIds(new Set(houseIds))
+        } catch (refreshError) {
+          console.error("Error refreshing orders:", refreshError)
+        }
+      }
       showToast(
         error.response?.data?.message || 'Lỗi: Không thể thay đổi đơn hàng',
         'error'
@@ -235,7 +250,7 @@ export default function DroneMap() {
     if (activeIds.size === 0) return
     setLoading(true)
     try {
-      const res = await axios.post(`${API_BASE}/location/orders/optimize`)
+      const res = await axios.post(`${ORDER_API_BASE}/location/orders/optimize`)
       const orderedIds = res.data.route.map((r) => r.houseId)
       setRoute(orderedIds)
 
@@ -251,6 +266,13 @@ export default function DroneMap() {
     }
   }
 
+  useEffect(() => {
+    const autoOptimize = new URLSearchParams(location.search).get('auto') === '1'
+    if (!autoOptimize || autoApplied || activeIds.size === 0 || loading || isDelivering) return
+    handleOptimize()
+    setAutoApplied(true)
+  }, [location.search, autoApplied, activeIds.size, loading, isDelivering])
+
   const handleClear = async () => {
     try {
       const selectedHouseIds = Array.from(activeIds)
@@ -261,7 +283,7 @@ export default function DroneMap() {
       }
 
       for (const houseId of selectedHouseIds) {
-        await axios.post(`${API_BASE}/location/orders/toggle`, {
+        await axios.post(`${ORDER_API_BASE}/location/orders/toggle`, {
           houseId,
           lat: 0,
           lng: 0,
@@ -283,7 +305,7 @@ export default function DroneMap() {
   const sendNotificationToOwner = async (house) => {
     try {
       console.log(`[Notification] Sending notification to ${house.address}...`)
-      const response = await axios.post(`${API_BASE}/location/notify-arrival`, {
+      const response = await axios.post(`${NOTIFICATION_API_BASE}/location/notify-arrival`, {
         houseId: house._id,
         houseName: house.address,
         ownerPhone: house.owner?.phone,
@@ -515,7 +537,7 @@ export default function DroneMap() {
   const handleSearchOwner = async (e) => {
     e.preventDefault()
     try {
-      const response = await axios.post(`${API_BASE}/location/houses/search-owner`, {
+      const response = await axios.post(`${ORDER_API_BASE}/location/houses/search-owner`, {
         name: searchForm.name,
         phone: searchForm.phone,
         email: searchForm.email,
@@ -533,7 +555,7 @@ export default function DroneMap() {
     }
 
     try {
-      const response = await axios.post(`${API_BASE}/location/orders/toggle`, {
+      const response = await axios.post(`${ORDER_API_BASE}/location/orders/toggle`, {
         houseId: house._id,
         lat: house.lat,
         lng: house.lng,
@@ -561,17 +583,17 @@ export default function DroneMap() {
       {claimModal.isOpen && (
         <div className="fixed inset-0 z-[2000] bg-black/50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-2xl p-6 w-96 max-w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">📍 Đăng ký Căn Nhà</h2>
+            <h2 className="text-2xl font-bold mb-4">📍 {t('Register House')}</h2>
             
             <div className="bg-gray-50 p-3 rounded-lg mb-4">
-              <p className="text-sm text-gray-600">Địa chỉ:</p>
+              <p className="text-sm text-gray-600">{t('Address:')}</p>
               <p className="font-semibold text-gray-900">{claimModal.house?.address}</p>
             </div>
 
             <form onSubmit={handleClaimHouse} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Họ và tên
+                  {t('Full Name')}
                 </label>
                 <input
                   type="text"
@@ -584,13 +606,13 @@ export default function DroneMap() {
                   }
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Nhập họ và tên"
+                  placeholder={t('Enter full name')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Số điện thoại
+                  {t('Phone Number')}
                 </label>
                 <input
                   type="tel"
@@ -603,7 +625,7 @@ export default function DroneMap() {
                   }
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Nhập số điện thoại"
+                  placeholder={t('Enter phone number')}
                 />
               </div>
 
@@ -621,7 +643,7 @@ export default function DroneMap() {
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Nhập email"
+                  placeholder={t('Enter email')}
                 />
               </div>
 
@@ -631,14 +653,14 @@ export default function DroneMap() {
                   onClick={closeClaimModal}
                   className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-semibold"
                 >
-                  Hủy
+                  {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={claiming}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold disabled:opacity-50"
                 >
-                  {claiming ? "Đang xử lý..." : "✓ Đăng ký căn nhà"}
+                  {claiming ? t('Processing...') : `✓ ${t('Register house')}`}
                 </button>
               </div>
             </form>
@@ -651,20 +673,20 @@ export default function DroneMap() {
         <div className="absolute top-20 right-4 z-[900] bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-2xl p-5 w-80 text-white border border-white/30">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <span className="animate-spin">🚁</span> Đang giao hàng
+              <span className="animate-spin">🚁</span> {t('Delivering')}
             </h3>
             <span className={`text-sm px-3 py-1 rounded-full ${
               isPaused 
                 ? 'bg-yellow-500/30 border border-yellow-300' 
                 : 'bg-green-500/30 border border-green-300'
             }`}>
-              {isPaused ? '⏸ Tạm dừng' : '▶ Đang chạy'}
+              {isPaused ? `⏸ ${t('Pause')}` : `▶ ${t('Running')}`}
             </span>
           </div>
           
           <div className="space-y-3">
             <div className="bg-white/20 rounded-lg p-3">
-              <p className="text-sm opacity-90">Tiến độ giao hàng</p>
+              <p className="text-sm opacity-90">{t('Delivery progress')}</p>
               <div className="mt-1 w-full bg-white/30 rounded-full h-2">
                 <div 
                   className="bg-white h-2 rounded-full transition-all duration-300"
@@ -674,12 +696,12 @@ export default function DroneMap() {
               <p className="text-sm mt-2 font-semibold">
                 Stop {currentStopIndex + 1} / {route.length}
               </p>
-              <p className="text-xs mt-1 opacity-75">✅ Đã giao: {deliveredCount}</p>
+              <p className="text-xs mt-1 opacity-75">✅ {t('Delivered:')} {deliveredCount}</p>
             </div>
 
             {route[currentStopIndex] && houseById.get(route[currentStopIndex]) && (
               <div className="bg-white/20 rounded-lg p-3">
-                <p className="text-sm opacity-90">Điểm giao hàng hiện tại</p>
+                <p className="text-sm opacity-90">{t('Current delivery stop')}</p>
                 <p className="font-semibold text-sm mt-1">
                   {houseById.get(route[currentStopIndex])?.address}
                 </p>
@@ -697,7 +719,7 @@ export default function DroneMap() {
         <div className="absolute top-20 right-96 z-[900] bg-white rounded-xl shadow-xl p-4 border border-gray-200 w-96 max-h-96 overflow-y-auto">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-              📋 Lịch sử giao hàng ({deliveryLog.length})
+              📋 {t('Delivery history')} ({deliveryLog.length})
             </h3>
             {isDelivering && <span className="animate-pulse text-green-600 text-2xl">●</span>}
           </div>
@@ -717,7 +739,7 @@ export default function DroneMap() {
                   </div>
                 </div>
                 {entry.notificationId && (
-                  <p className="text-xs text-green-600 mt-2">✓ Thông báo ID: {entry.notificationId.substring(0, 8)}...</p>
+                  <p className="text-xs text-green-600 mt-2">✓ {t('Notification ID:')} {entry.notificationId.substring(0, 8)}...</p>
                 )}
               </div>
             ))}
@@ -725,8 +747,8 @@ export default function DroneMap() {
           
           {!isDelivering && deliveryLog.length > 0 && (
             <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
-              <p className="text-sm font-bold text-green-800">✅ Hoàn thành giao hàng</p>
-              <p className="text-xs text-green-700 mt-1">Tổng cộng: {deliveredCount} điểm</p>
+              <p className="text-sm font-bold text-green-800">✅ {t('Delivery completed')}</p>
+              <p className="text-xs text-green-700 mt-1">{t('Total:')} {deliveredCount} {t('points')}</p>
             </div>
           )}
         </div>
@@ -735,7 +757,7 @@ export default function DroneMap() {
       {/* Search Owner Section */}
       <div className="absolute top-20 left-4 z-[900] bg-white rounded-xl shadow-xl p-4 w-80 max-h-96 overflow-y-auto border border-gray-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">🔍 Tìm kiếm chủ sở hữu</h3>
+          <h3 className="text-lg font-bold">🔍 {t('Search owner')}</h3>
           <button
             onClick={() => setShowSearch(!showSearch)}
             className="text-gray-600 hover:text-gray-900"
@@ -749,14 +771,14 @@ export default function DroneMap() {
             <form onSubmit={handleSearchOwner} className="space-y-3 mb-4">
               <input
                 type="text"
-                placeholder="Tên chủ sở hữu"
+                placeholder={t('Owner name')}
                 value={searchForm.name}
                 onChange={(e) => setSearchForm({...searchForm, name: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               />
               <input
                 type="tel"
-                placeholder="Số điện thoại"
+                placeholder={t('Phone number')}
                 value={searchForm.phone}
                 onChange={(e) => setSearchForm({...searchForm, phone: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -772,13 +794,13 @@ export default function DroneMap() {
                 type="submit"
                 className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700"
               >
-                Tìm kiếm
+                {t('Search')}
               </button>
             </form>
 
             {searchResults.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-gray-700">Kết quả ({searchResults.length}):</p>
+                <p className="text-sm font-semibold text-gray-700">{t('Results')} ({searchResults.length}):</p>
                 {searchResults.map((house) => (
                   <div
                     key={house._id}
@@ -792,7 +814,7 @@ export default function DroneMap() {
                       disabled={activeIds.has(house._id)}
                       className="mt-2 w-full bg-green-500 text-white py-1 px-2 rounded text-sm font-semibold hover:bg-green-600 disabled:bg-gray-400"
                     >
-                      {activeIds.has(house._id) ? '✓ Đã chọn' : '+ Chọn giao hàng'}
+                      {activeIds.has(house._id) ? `✓ ${t('Selected')}` : `+ ${t('Selected for delivery')}`}
                     </button>
                   </div>
                 ))}
@@ -808,35 +830,36 @@ export default function DroneMap() {
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-sm"
-            title="Quay về trang trước"
+            title={t('Go back')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Quay lại
+            {t('Back')}
           </button>
           <div className="pl-4 border-l border-gray-300">
             <div className="font-bold text-lg text-gray-800">🚁 Drone Delivery Map</div>
-            <div className="text-xs text-gray-500">Vinhomes, Hà Nội</div>
+            <div className="text-xs text-gray-500">{t('Vinhomes, Hanoi')}</div>
           </div>
         </div>
+        <LanguageSwitcher compact />
       </div>
 
       {/* Stats Info Panel - Bottom Left */}
       <div className="absolute bottom-4 left-4 z-[900] bg-white rounded-xl shadow-xl p-4 border border-gray-200 w-72">
-        <h3 className="font-bold text-lg text-gray-800 mb-3">📊 Thông tin đơn hàng</h3>
+        <h3 className="font-bold text-lg text-gray-800 mb-3">📊 {t('Order information')}</h3>
         <div className="space-y-2">
           <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
-            <span className="text-gray-700 font-medium">Tổng căn nhà:</span>
+            <span className="text-gray-700 font-medium">{t('Total houses:')}</span>
             <span className="font-bold text-blue-600 text-lg">{houses.length}</span>
           </div>
           <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
-            <span className="text-gray-700 font-medium">Đã chọn:</span>
+            <span className="text-gray-700 font-medium">{t('Selected:')}</span>
             <span className="font-bold text-green-600 text-lg">{activeIds.size}</span>
           </div>
           {route.length > 0 && (
             <div className="flex justify-between items-center p-2 bg-purple-50 rounded-lg">
-              <span className="text-gray-700 font-medium">Lộ trình:</span>
+              <span className="text-gray-700 font-medium">{t('Route:')}</span>
               <span className="font-bold text-purple-600 text-lg">{route.length}</span>
             </div>
           )}
@@ -844,19 +867,19 @@ export default function DroneMap() {
 
         {/* Legend */}
         <div className="mt-4 pt-4 border-t border-gray-200">
-          <h4 className="font-semibold text-gray-800 mb-2 text-sm">📍 Chú thích</h4>
+          <h4 className="font-semibold text-gray-800 mb-2 text-sm">📍 {t('Legend')}</h4>
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-white border-2 border-gray-400"></div>
-              <span className="text-sm text-gray-600">Chưa đăng ký</span>
+              <span className="text-sm text-gray-600">{t('Not registered')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-green-700"></div>
-              <span className="text-sm text-gray-600">Đã đăng ký</span>
+              <span className="text-sm text-gray-600">{t('Registered')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-red-700"></div>
-              <span className="text-sm text-gray-600">Chọn giao hàng</span>
+              <span className="text-sm text-gray-600">{t('Selected for delivery')}</span>
             </div>
           </div>
         </div>
@@ -873,7 +896,7 @@ export default function DroneMap() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            Xóa tất cả
+            {t('Clear all')}
           </button>
           <button
             onClick={handleOptimize}
@@ -883,7 +906,7 @@ export default function DroneMap() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            {loading ? "Đang tối ưu..." : "Tối ưu lộ trình"}
+            {loading ? t('Optimizing...') : t('Optimize route')}
           </button>
 
           {/* Delivery Control Buttons */}
@@ -896,7 +919,7 @@ export default function DroneMap() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              🚁 Bắt đầu giao hàng
+              🚁 {t('Start delivery')}
             </button>
           ) : (
             <>
@@ -913,14 +936,14 @@ export default function DroneMap() {
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
-                    ▶ Tiếp tục
+                    ▶ {t('Continue')}
                   </>
                 ) : (
                   <>
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
                     </svg>
-                    ⏸ Tạm dừng
+                    ⏸ {t('Pause')}
                   </>
                 )}
               </button>
@@ -931,7 +954,7 @@ export default function DroneMap() {
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M6 4h12v12H6V4z" />
                 </svg>
-                🛑 Dừng giao hàng
+                🛑 {t('Stop delivery')}
               </button>
             </>
           )}
@@ -1009,7 +1032,7 @@ export default function DroneMap() {
                   )}
                   {isSelected && (
                     <div className="mt-2 p-2 bg-red-100 rounded">
-                      <span className="text-red-700 font-semibold">🔴 Đã chọn giao hàng</span>
+                      <span className="text-red-700 font-semibold">🔴 {t('Selected for delivery')}</span>
                       {seq && (
                         <div className="text-sm text-red-600">Stop #{seq}</div>
                       )}
@@ -1017,7 +1040,7 @@ export default function DroneMap() {
                   )}
                   {!isSelected && h.hasOwner && (
                     <div className="mt-2 p-2 bg-green-100 rounded">
-                      <span className="text-green-700 font-semibold">✓ Đã đăng ký</span>
+                      <span className="text-green-700 font-semibold">✓ {t('Registered')}</span>
                     </div>
                   )}
                   <button
@@ -1032,10 +1055,10 @@ export default function DroneMap() {
                     }`}
                   >
                     {!h.hasOwner 
-                      ? "❌ Chưa có chủ sở hữu"
+                      ? `❌ ${t('No owner yet')}`
                       : isSelected 
-                      ? "❌ Bỏ chọn" 
-                      : "✓ Chọn giao hàng"}
+                      ? `❌ ${t('Remove selection')}` 
+                      : `✓ ${t('Selected for delivery')}`}
                   </button>
                 </div>
               </Popup>
@@ -1047,7 +1070,7 @@ export default function DroneMap() {
         {dronePosition && (
           <Marker position={[dronePosition.lat, dronePosition.lng]} icon={droneIcon}>
             <Popup>
-              <div className="font-semibold">🚁 Drone đang giao hàng</div>
+              <div className="font-semibold">🚁 {t('Drone delivering')}</div>
               <div className="text-sm">Stop #{currentStopIndex + 1}/{route.length}</div>
               <div className="text-sm text-gray-600">
                 Lat: {dronePosition.lat.toFixed(6)}
