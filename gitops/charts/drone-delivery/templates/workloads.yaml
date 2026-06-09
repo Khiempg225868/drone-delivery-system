@@ -1,0 +1,63 @@
+{{- range $name, $workload := .Values.workloads }}
+{{- if $workload.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "drone-delivery.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "drone-delivery.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  replicas: {{ $workload.replicas | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "drone-delivery.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $name }}
+  template:
+    metadata:
+      labels:
+        {{- include "drone-delivery.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $name }}
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: {{ $workload.image | quote }}
+          imagePullPolicy: {{ $workload.imagePullPolicy | default $.Values.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $workload.containerPort | default $workload.port }}
+          {{- with $workload.command }}
+          command:
+{{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $workload.args }}
+          args:
+{{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $workload.env }}
+          env:
+{{- range $envName, $envValue := . }}
+            - name: {{ $envName }}
+              value: {{ tpl (printf "%v" $envValue) $ | quote }}
+{{- end }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "drone-delivery.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "drone-delivery.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  type: {{ $workload.serviceType | default "ClusterIP" }}
+  ports:
+    - name: http
+      port: {{ $workload.port }}
+      targetPort: {{ $workload.containerPort | default $workload.port }}
+  selector:
+    {{- include "drone-delivery.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+---
+{{- end }}
+{{- end }}

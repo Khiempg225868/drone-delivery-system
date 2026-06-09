@@ -1,0 +1,6 @@
+apiVersion: v2
+name: drone-delivery
+description: Helm chart for the drone delivery thesis stack
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

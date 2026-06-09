@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: drone-delivery
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - env: prod
+            namespace: drone-delivery
+            valuesFile: values-prod.yaml
+  template:
+    metadata:
+      name: drone-delivery
+    spec:
+      project: drone-delivery
+      source:
+        repoURL: https://github.com/Khiempg225868/drone-delivery-system.git
+        targetRevision: main
+        path: gitops/charts/drone-delivery
+        helm:
+          releaseName: drone-delivery
+          valueFiles:
+            - {{valuesFile}}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: {{namespace}}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "drone-delivery.mongoServiceName" . }}
+  labels:
+    {{- include "drone-delivery.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongo
+spec:
+  serviceName: {{ include "drone-delivery.mongoServiceName" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "drone-delivery.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: mongo
+  template:
+    metadata:
+      labels:
+        {{- include "drone-delivery.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: {{ .Values.mongo.image | quote }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - name: mongo
+              containerPort: {{ .Values.mongo.service.port }}
+          envFrom:
+            - secretRef:
+                name: {{ include "drone-delivery.mongoServiceName" . }}
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.mongo.persistence.size | quote }}
+        {{- with .Values.mongo.persistence.storageClassName }}
+        storageClassName: {{ . | quote }}
+        {{- end }}

@@ -1,0 +1,95 @@
+nameOverride: ""
+fullnameOverride: ""
+namespace: drone-delivery
+imagePullPolicy: IfNotPresent
+
+mongo:
+  image: mongo:8.0.4
+  service:
+    port: 27017
+  auth:
+    username: root
+    password: change-me
+    database: drone_system
+  persistence:
+    size: 8Gi
+    storageClassName: ""
+
+workloads:
+  auth-service:
+    enabled: true
+    replicas: 1
+    image: docker.io/khiempg225868/auth-service:latest
+    port: 5001
+    containerPort: 5001
+    env:
+      PORT: "5001"
+      DATABASE_NAME: "{{ .Values.mongo.auth.database }}"
+      MONGO_URI: "mongodb://{{ .Values.mongo.auth.username }}:{{ .Values.mongo.auth.password }}@{{ include \"drone-delivery.mongoServiceName\" . }}:{{ .Values.mongo.service.port }}/{{ .Values.mongo.auth.database }}?authSource=admin"
+      JWT_SECRET: "change-me"
+      JWT_EXPIRATION: "1d"
+  delivery-service:
+    enabled: true
+    replicas: 1
+    image: docker.io/khiempg225868/delivery-service:latest
+    port: 5002
+    containerPort: 5002
+    env:
+      PORT: "5002"
+      DATABASE_NAME: "{{ .Values.mongo.auth.database }}"
+      MONGO_URI: "mongodb://{{ .Values.mongo.auth.username }}:{{ .Values.mongo.auth.password }}@{{ include \"drone-delivery.mongoServiceName\" . }}:{{ .Values.mongo.service.port }}/{{ .Values.mongo.auth.database }}?authSource=admin"
+      JWT_SECRET: "change-me"
+      JWT_EXPIRATION: "1d"
+  order-service:
+    enabled: true
+    replicas: 1
+    image: docker.io/khiempg225868/order-service:latest
+    port: 5003
+    containerPort: 5003
+    env:
+      PORT: "5003"
+      DATABASE_NAME: "{{ .Values.mongo.auth.database }}"
+      MONGO_URI: "mongodb://{{ .Values.mongo.auth.username }}:{{ .Values.mongo.auth.password }}@{{ include \"drone-delivery.mongoServiceName\" . }}:{{ .Values.mongo.service.port }}/{{ .Values.mongo.auth.database }}?authSource=admin"
+      PYTHON_OPTIMIZER_URL: "http://{{ include \"drone-delivery.fullname\" . }}-python-optimizer:8001/optimize"
+  notification-service:
+    enabled: true
+    replicas: 1
+    image: docker.io/khiempg225868/notification-service:latest
+    port: 5004
+    containerPort: 5004
+    env:
+      PORT: "5004"
+      DATABASE_NAME: "{{ .Values.mongo.auth.database }}"
+      MONGO_URI: "mongodb://{{ .Values.mongo.auth.username }}:{{ .Values.mongo.auth.password }}@{{ include \"drone-delivery.mongoServiceName\" . }}:{{ .Values.mongo.service.port }}/{{ .Values.mongo.auth.database }}?authSource=admin"
+  python-optimizer:
+    enabled: true
+    replicas: 1
+    image: docker.io/khiempg225868/python-optimizer:latest
+    port: 8001
+    containerPort: 8001
+    command:
+      - uvicorn
+    args:
+      - optimizer_service:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8001"
+    env:
+      PORT: "8001"
+  frontend:
+    enabled: true
+    replicas: 1
+    image: docker.io/khiempg225868/frontend:latest
+    port: 80
+    containerPort: 80
+    env:
+      APP_API_BASE_URL: http://localhost:5002/api
+      APP_API_AUTH_URL: http://localhost:5001/api
+      APP_API_DELIVERY_URL: http://localhost:5002/api
+      APP_API_ORDER_URL: http://localhost:5003/api
+      APP_API_NOTIFICATION_URL: http://localhost:5004/api
+    gateway:
+      enabled: false
+      className: ""
+      host: drone-delivery.local

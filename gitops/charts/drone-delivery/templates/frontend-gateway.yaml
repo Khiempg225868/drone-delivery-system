@@ -1,0 +1,41 @@
+{{- $frontend := .Values.workloads.frontend -}}
+{{- if and $frontend.enabled $frontend.gateway.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "drone-delivery.fullname" . }}-frontend
+  labels:
+    {{- include "drone-delivery.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  gatewayClassName: {{ $frontend.gateway.className | quote }}
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: {{ $frontend.gateway.port | default 80 }}
+      hostname: {{ $frontend.gateway.host | quote }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "drone-delivery.fullname" . }}-frontend
+  labels:
+    {{- include "drone-delivery.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  parentRefs:
+    - name: {{ include "drone-delivery.fullname" . }}-frontend
+  hostnames:
+    - {{ $frontend.gateway.host | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ include "drone-delivery.fullname" . }}-frontend
+          port: {{ $frontend.port }}
+{{- end }}

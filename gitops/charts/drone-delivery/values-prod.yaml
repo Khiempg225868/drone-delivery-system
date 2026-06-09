@@ -1,0 +1,24 @@
+namespace: drone-delivery
+
+mongo:
+  auth:
+    password: prod-change-me
+
+workloads:
+  auth-service:
+    replicas: 2
+    image: docker.io/khiempg225868/auth-service:latest
+  delivery-service:
+    replicas: 2
+    image: docker.io/khiempg225868/delivery-service:latest
+  order-service:
+    replicas: 2
+    image: docker.io/khiempg225868/order-service:latest
+  notification-service:
+    replicas: 2
+    image: docker.io/khiempg225868/notification-service:latest
+  python-optimizer:
+    image: docker.io/khiempg225868/python-optimizer:latest
+  frontend:
+    image: docker.io/khiempg225868/frontend:latest
+    enabled: true
