@@ -6,15 +6,15 @@ mongo:
 
 workloads:
   auth-service:
-    image: docker.io/khiempg225868/auth-service:dev
+    image: docker.io/khiempg225868/auth-service:v1.0.0
   delivery-service:
-    image: docker.io/khiempg225868/delivery-service:dev
+    image: docker.io/khiempg225868/delivery-service:v1.0.0
   order-service:
-    image: docker.io/khiempg225868/order-service:dev
+    image: docker.io/khiempg225868/order-service:v1.0.0
   notification-service:
-    image: docker.io/khiempg225868/notification-service:dev
+    image: docker.io/khiempg225868/notification-service:v1.0.0
   python-optimizer:
-    image: docker.io/khiempg225868/python-optimizer:dev
+    image: docker.io/khiempg225868/python-optimizer:v1.0.0
   frontend:
-    image: docker.io/khiempg225868/frontend:dev
+    image: docker.io/khiempg225868/frontend:v1.0.0
     enabled: true
