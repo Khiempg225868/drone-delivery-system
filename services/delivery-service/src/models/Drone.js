@@ -1,0 +1,44 @@
+import mongoose from "mongoose";
+
+const droneSchema = new mongoose.Schema({
+  droneId: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  name: {
+    type: String,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["available", "in_flight", "charging", "maintenance"],
+    default: "available",
+  },
+  batteryLevel: {
+    type: Number,
+    default: 100,
+    min: 0,
+    max: 100,
+  },
+  maxCapacity: {
+    type: Number,
+    required: true,
+    default: 5,
+  },
+  currentLocation: {
+    latitude: Number,
+    longitude: Number,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+const Drone = mongoose.model("Drone", droneSchema);
+export default Drone;

@@ -1,0 +1,18 @@
+import jwt from "jsonwebtoken";
+import { env } from "./environments.js";
+
+export const verifyToken = (token) => {
+  return jwt.verify(token, env.JWT_SECRET);
+};
+
+export const getTokenFromHeaders = (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    throw new Error("Authorization header not found");
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    throw new Error("Token not found");
+  }
+  return token;
+};
