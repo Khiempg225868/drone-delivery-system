@@ -22,3 +22,4 @@ workloads:
   frontend:
     image: docker.io/khiempg225868/frontend:v1.0.3
     enabled: true
+    serviceType: NodePort
