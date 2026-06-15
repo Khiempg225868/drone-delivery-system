@@ -122,7 +122,7 @@ export default function Home() {
 
             {/* Subheading */}
             <p className="text-lg md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              {t('Revolutionize your delivery operations with our intelligent drone management platform.')} 
+              {t('CICD testingR evolutionize your delivery operations with our intelligent drone management platform.')} 
               {t('Real-time tracking, fleet optimization, and advanced analytics all in one place.')}
             </p>
 
