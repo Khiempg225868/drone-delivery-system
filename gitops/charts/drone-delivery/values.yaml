@@ -81,6 +81,7 @@ workloads:
     enabled: true
     replicas: 1
     image: docker.io/khiempg225868/frontend:v1.0.3
+    serviceType: NodePort
     port: 80
     containerPort: 80
     env:
