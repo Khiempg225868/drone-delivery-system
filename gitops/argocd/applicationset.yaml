@@ -22,10 +22,10 @@ spec:
         helm:
           releaseName: drone-delivery
           valueFiles:
-            - {{valuesFile}}
+            - '{{valuesFile}}'
       destination:
         server: https://kubernetes.default.svc
-        namespace: {{namespace}}
+        namespace: '{{namespace}}'
       syncPolicy:
         automated:
           prune: true
