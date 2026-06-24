@@ -1,0 +1,17 @@
+- name: Deploy EFK logging stack to Kubernetes
+  hosts: all
+  gather_facts: false
+  vars:
+    logging_manifest_files:
+      - efk/namespace.yaml
+      - efk/elastic/elasticsearch_svc.yaml
+      - efk/elastic/elasticsearch_statefulset.yaml
+      - efk/kibana/kibana.yaml
+      - efk/fluentd/fluentd-configmap.yaml
+      - efk/fluentd/fluentd.yaml
+  tasks:
+    - name: Apply logging manifests
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/{{ item }}"
+      loop: "{{ logging_manifest_files }}"
