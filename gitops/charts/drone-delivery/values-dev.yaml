@@ -6,16 +6,16 @@ mongo:
 
 workloads:
   auth-service:
-    image: docker.io/khiempg225868/auth-service:v1.0.3
+    image: docker.io/khiempg225868/auth-service:v1.0.4
   delivery-service:
-    image: docker.io/khiempg225868/delivery-service:v1.0.3
+    image: docker.io/khiempg225868/delivery-service:v1.0.4
   order-service:
-    image: docker.io/khiempg225868/order-service:v1.0.3
+    image: docker.io/khiempg225868/order-service:v1.0.4
   notification-service:
-    image: docker.io/khiempg225868/notification-service:v1.0.3
+    image: docker.io/khiempg225868/notification-service:v1.0.4
   python-optimizer:
-    image: docker.io/khiempg225868/python-optimizer:v1.0.3
+    image: docker.io/khiempg225868/python-optimizer:v1.0.4
   frontend:
-    image: docker.io/khiempg225868/frontend:v1.0.3
+    image: docker.io/khiempg225868/frontend:v1.0.4
     enabled: true
     serviceType: NodePort
