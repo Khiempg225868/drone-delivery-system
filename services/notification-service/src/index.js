@@ -3,6 +3,7 @@ import cors from "cors";
 import { env } from "./config/environments.js";
 import connectDB from "./config/mongodb.js";
 import { API } from "./routes/index.js";
+import { metricsHandler, metricsMiddleware } from "./middlewares/metrics.js";
 
 const app = express();
 
@@ -14,6 +15,8 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(metricsMiddleware);
+app.get("/metrics", metricsHandler);
 app.use("/", API);
 
 const PORT = env.PORT || 5004;

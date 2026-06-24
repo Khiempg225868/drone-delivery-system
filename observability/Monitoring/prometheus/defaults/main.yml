@@ -1,0 +1,36 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for prometheus
+prometheus_namespace: monitoring
+prometheus_image: prom/prometheus:v2.55.1
+prometheus_replicas: 1
+prometheus_service_type: NodePort
+prometheus_node_port: 30169
+prometheus_scrape_interval: 15s
+prometheus_retention_time: 7d
+prometheus_storage_size: 2Gi
+
+prometheus_scrape_namespaces:
+  - drone-delivery
+
+prometheus_app_targets:
+  - job_name: auth-service
+    metrics_path: /metrics
+    targets:
+      - drone-delivery-auth-service.drone-delivery.svc.cluster.local:5001
+  - job_name: delivery-service
+    metrics_path: /metrics
+    targets:
+      - drone-delivery-delivery-service.drone-delivery.svc.cluster.local:5002
+  - job_name: order-service
+    metrics_path: /metrics
+    targets:
+      - drone-delivery-order-service.drone-delivery.svc.cluster.local:5003
+  - job_name: notification-service
+    metrics_path: /metrics
+    targets:
+      - drone-delivery-notification-service.drone-delivery.svc.cluster.local:5004
+  - job_name: python-optimizer
+    metrics_path: /metrics
+    targets:
+      - drone-delivery-python-optimizer.drone-delivery.svc.cluster.local:8001

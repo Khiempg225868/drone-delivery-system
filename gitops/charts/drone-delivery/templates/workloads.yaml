@@ -49,6 +49,12 @@ metadata:
   labels:
     {{- include "drone-delivery.labels" $ | nindent 4 }}
     app.kubernetes.io/component: {{ $name }}
+  {{- if and $workload.metrics $workload.metrics.enabled }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: {{ $workload.metrics.path | default "/metrics" | quote }}
+    prometheus.io/port: {{ printf "%v" ($workload.port | default ($workload.containerPort | default 80)) | quote }}
+  {{- end }}
 spec:
   type: {{ $workload.serviceType | default "ClusterIP" }}
   ports:

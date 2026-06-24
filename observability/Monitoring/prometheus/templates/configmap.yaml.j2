@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: {{ prometheus_namespace }}
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ prometheus_scrape_interval }}
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets:
+              - localhost:9090
+
+      - job_name: kubernetes-annotated-services
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+{% for namespace in prometheus_scrape_namespaces %}
+                - {{ namespace }}
+{% endfor %}
+        relabel_configs:
+          - action: keep
+            source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            regex: "true"
+          - action: replace
+            source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            target_label: __metrics_path__
+            regex: (.+)
+          - action: replace
+            source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - action: replace
+            source_labels: [__meta_kubernetes_namespace]
+            target_label: kubernetes_namespace
+          - action: replace
+            source_labels: [__meta_kubernetes_service_name]
+            target_label: kubernetes_service
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_name]
+            target_label: kubernetes_pod
+
+{% for target_group in prometheus_app_targets %}
+      - job_name: {{ target_group.job_name }}
+        metrics_path: {{ target_group.metrics_path | default('/metrics') }}
+        static_configs:
+          - targets:
+{% for target in target_group.targets %}
+              - {{ target }}
+{% endfor %}
+{% endfor %}

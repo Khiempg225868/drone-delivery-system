@@ -1,0 +1,35 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for prometheus
+- name: Create monitoring namespace
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'namespace.yaml.j2') | from_yaml }}"
+
+- name: Create Prometheus service account
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'serviceaccount.yaml.j2') | from_yaml }}"
+
+- name: Create Prometheus RBAC
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', item) | from_yaml }}"
+  loop:
+    - clusterrole.yaml.j2
+    - clusterrolebinding.yaml.j2
+
+- name: Apply Prometheus ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'configmap.yaml.j2') | from_yaml }}"
+
+- name: Deploy Prometheus
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'deployment.yaml.j2') | from_yaml }}"
+
+- name: Expose Prometheus Service
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'service.yaml.j2') | from_yaml }}"

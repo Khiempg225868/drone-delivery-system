@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
 from clustered_tsp import Point, clustered_tsp, calculate_route_distance
@@ -27,6 +28,7 @@ class OptimizeRequest(BaseModel):
 
 
 app = FastAPI()
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 CONFIG_PATH = Path(__file__).with_name("config.json")
 
 
