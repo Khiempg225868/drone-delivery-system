@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
@@ -30,6 +30,24 @@ class OptimizeRequest(BaseModel):
 app = FastAPI()
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 CONFIG_PATH = Path(__file__).with_name("config.json")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    started_at = time.time()
+    response = await call_next(request)
+
+    if request.url.path != "/metrics":
+        print(json.dumps({
+            "event": "http_request",
+            "service": "python-optimizer",
+            "request_path": request.url.path,
+            "http_method": request.method,
+            "response_code": response.status_code,
+            "duration_ms": int((time.time() - started_at) * 1000),
+        }), flush=True)
+
+    return response
 
 
 def load_config():
