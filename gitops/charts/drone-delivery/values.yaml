@@ -19,7 +19,7 @@ workloads:
   auth-service:
     enabled: true
     replicas: 1
-    image: docker.io/khiempg225868/auth-service:v1.0.9
+    image: docker.io/khiempg225868/auth-service:v2.0.0
     port: 5001
     containerPort: 5001
     metrics:
@@ -34,7 +34,7 @@ workloads:
   delivery-service:
     enabled: true
     replicas: 1
-    image: docker.io/khiempg225868/delivery-service:v1.0.9
+    image: docker.io/khiempg225868/delivery-service:v2.0.0
     port: 5002
     containerPort: 5002
     metrics:
@@ -49,7 +49,7 @@ workloads:
   order-service:
     enabled: true
     replicas: 1
-    image: docker.io/khiempg225868/order-service:v1.0.9
+    image: docker.io/khiempg225868/order-service:v2.0.0
     port: 5003
     containerPort: 5003
     metrics:
@@ -63,7 +63,7 @@ workloads:
   notification-service:
     enabled: true
     replicas: 1
-    image: docker.io/khiempg225868/notification-service:v1.0.9
+    image: docker.io/khiempg225868/notification-service:v2.0.0
     port: 5004
     containerPort: 5004
     metrics:
@@ -76,7 +76,7 @@ workloads:
   python-optimizer:
     enabled: true
     replicas: 1
-    image: docker.io/khiempg225868/python-optimizer:v1.0.9
+    image: docker.io/khiempg225868/python-optimizer:v2.0.0
     port: 8001
     containerPort: 8001
     metrics:
@@ -95,7 +95,7 @@ workloads:
   frontend:
     enabled: true
     replicas: 1
-    image: docker.io/khiempg225868/frontend:v1.0.9
+    image: docker.io/khiempg225868/frontend:v2.0.0
     serviceType: NodePort
     port: 80
     containerPort: 8080
