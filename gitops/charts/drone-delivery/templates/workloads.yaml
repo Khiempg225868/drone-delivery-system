@@ -33,6 +33,9 @@ spec:
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           ports:
             - name: http
               containerPort: {{ $workload.containerPort | default $workload.port }}
@@ -51,6 +54,9 @@ spec:
               value: {{ tpl (printf "%v" $envValue) $ | quote }}
 {{- end }}
           {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
