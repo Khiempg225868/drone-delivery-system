@@ -19,10 +19,20 @@ spec:
         {{- include "drone-delivery.selectorLabels" $ | nindent 8 }}
         app.kubernetes.io/component: {{ $name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: {{ $name }}
           image: {{ $workload.image | quote }}
           imagePullPolicy: {{ $workload.imagePullPolicy | default $.Values.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: {{ $workload.containerPort | default $workload.port }}
