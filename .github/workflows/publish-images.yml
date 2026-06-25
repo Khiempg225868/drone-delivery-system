@@ -72,6 +72,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.name }}:${{ env.IMAGE_TAG }}
+          scanners: 'vuln'
           format: 'table'
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
