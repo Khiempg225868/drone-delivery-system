@@ -131,4 +131,4 @@ jobs:
           format: 'table'
           severity: 'HIGH,CRITICAL'
           hide-progress: true
-          exit-code: '0'
+          exit-code: '1'
