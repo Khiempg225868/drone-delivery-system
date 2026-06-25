@@ -13,4 +13,7 @@ COPY clustered_tsp.py optimizer_service.py config.json ./
 
 EXPOSE 8001
 
+RUN useradd --create-home --uid 10001 appuser
+USER 10001
+
 CMD ["uvicorn", "optimizer_service:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
