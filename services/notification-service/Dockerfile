@@ -13,4 +13,6 @@ COPY src ./src
 
 EXPOSE 5004
 
+USER 1000
+
 CMD ["node", "src/index.js"]

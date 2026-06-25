@@ -1,7 +1,10 @@
 #!/bin/sh
 set -eu
 
-cat > /usr/share/nginx/html/env.js <<EOF
+mkdir -p /tmp/nginx/html
+cp -R /opt/app/html/. /tmp/nginx/html/
+
+cat > /tmp/nginx/html/env.js <<EOF
 window.__APP_CONFIG__ = {
   APP_API_BASE_URL: "${APP_API_BASE_URL:-http://localhost:5002/api}",
   APP_API_AUTH_URL: "${APP_API_AUTH_URL:-http://localhost:5001/api}",
