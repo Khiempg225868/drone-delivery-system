@@ -10,7 +10,17 @@ import {
 } from "../models/accountModel.js";
 
 const createAccount = async (data) => {
-  const newAccount = { ...data };
+  const newAccount = {
+    ...data,
+    FullName: data.FullName?.trim(),
+    Email: data.Email?.trim().toLowerCase(),
+    Phone: data.Phone?.trim(),
+  };
+
+  if (!newAccount.DateOfBirth) {
+    delete newAccount.DateOfBirth;
+  }
+
   return create(newAccount);
 };
 

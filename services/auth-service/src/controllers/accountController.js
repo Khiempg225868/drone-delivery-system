@@ -1,6 +1,30 @@
 import { accountService } from "../services/accountService.js";
 import { StatusCodes } from "http-status-codes";
 
+const resolveCreateAccountStatus = (error) => {
+  if (error?.code === 11000) {
+    return StatusCodes.CONFLICT;
+  }
+
+  if (error?.name === "ValidationError" || error?.name === "CastError") {
+    return StatusCodes.BAD_REQUEST;
+  }
+
+  return StatusCodes.INTERNAL_SERVER_ERROR;
+};
+
+const resolveCreateAccountMessage = (error) => {
+  if (error?.code === 11000) {
+    return "Email already exists";
+  }
+
+  if (error?.name === "ValidationError" || error?.name === "CastError") {
+    return "Invalid account information";
+  }
+
+  return "Error creating account";
+};
+
 const createAccount = async (req, res) => {
   try {
     const createdAccount = await accountService.createAccount(req.body);
@@ -9,8 +33,8 @@ const createAccount = async (req, res) => {
       account: createdAccount,
     });
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: "Error creating account",
+    res.status(resolveCreateAccountStatus(error)).json({
+      message: resolveCreateAccountMessage(error),
       error: error.message,
     });
   }

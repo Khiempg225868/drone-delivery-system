@@ -29,10 +29,21 @@ export default function Signup() {
     setError('')
     setLoading(true)
     try {
-      await createAccount(formData)
+      const payload = {
+        ...formData,
+        FullName: formData.FullName.trim(),
+        Email: formData.Email.trim().toLowerCase(),
+        Phone: formData.Phone.trim()
+      }
+
+      if (!payload.DateOfBirth) {
+        delete payload.DateOfBirth
+      }
+
+      await createAccount(payload)
       navigate('/login')
     } catch (err) {
-      setError(err.response?.data?.message || t('Signup failed'))
+      setError(err.response?.data?.message || err.response?.data?.error || t('Signup failed'))
     } finally {
       setLoading(false)
     }
