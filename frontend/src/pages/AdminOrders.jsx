@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useLanguage } from '../i18n/LanguageContext'
+import { appConfig } from '../config/runtimeConfig'
 
-const ORDER_API_BASE = import.meta.env.VITE_API_ORDER_URL || import.meta.env.VITE_API_BASE_URL
+const ORDER_API_BASE = appConfig.orderBaseUrl || appConfig.apiBaseUrl
 
 export default function AdminOrders() {
   const navigate = useNavigate()

@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useLanguage } from '../i18n/LanguageContext'
+import { appConfig } from '../config/runtimeConfig'
 
-const AUTH_API_BASE = import.meta.env.VITE_API_AUTH_URL || import.meta.env.VITE_API_BASE_URL
-const DELIVERY_API_BASE = import.meta.env.VITE_API_DELIVERY_URL || import.meta.env.VITE_API_BASE_URL
-const ORDER_API_BASE = import.meta.env.VITE_API_ORDER_URL || import.meta.env.VITE_API_BASE_URL
+const AUTH_API_BASE = appConfig.authBaseUrl || appConfig.apiBaseUrl
+const DELIVERY_API_BASE = appConfig.deliveryBaseUrl || appConfig.apiBaseUrl
+const ORDER_API_BASE = appConfig.orderBaseUrl || appConfig.apiBaseUrl
 
 export default function AdminPanel() {
   const navigate = useNavigate()

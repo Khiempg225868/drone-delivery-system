@@ -7,9 +7,10 @@ import axios from "axios"
 import { useToast, ToastContainer } from '../components/Toast'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import { useLanguage } from '../i18n/LanguageContext'
+import { appConfig } from '../config/runtimeConfig'
 
-const ORDER_API_BASE = import.meta.env.VITE_API_ORDER_URL || import.meta.env.VITE_API_BASE_URL
-const NOTIFICATION_API_BASE = import.meta.env.VITE_API_NOTIFICATION_URL || import.meta.env.VITE_API_BASE_URL
+const ORDER_API_BASE = appConfig.orderBaseUrl || appConfig.apiBaseUrl
+const NOTIFICATION_API_BASE = appConfig.notificationBaseUrl || appConfig.apiBaseUrl
 
 // House icons: white (not registered), green (registered), red (selected)
 const houseIcon = (status) => {
