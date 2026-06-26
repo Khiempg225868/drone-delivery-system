@@ -16,11 +16,13 @@ if (process.env.OTEL_SDK_DISABLED !== "true") {
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || "notification-service",
     }),
+    spanProcessors: [
+      new BatchSpanProcessor(new ZipkinExporter({
+        url: zipkinEndpoint,
+      })),
+    ],
   });
 
-  provider.addSpanProcessor(new BatchSpanProcessor(new ZipkinExporter({
-    url: zipkinEndpoint,
-  })));
   provider.register();
 
   registerInstrumentations({
