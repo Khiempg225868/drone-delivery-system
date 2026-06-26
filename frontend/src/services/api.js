@@ -1,10 +1,11 @@
 import axios from 'axios'
+import { appConfig } from '../config/runtimeConfig'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'
-const AUTH_BASE_URL = import.meta.env.VITE_API_AUTH_URL || API_BASE_URL
-const DELIVERY_BASE_URL = import.meta.env.VITE_API_DELIVERY_URL || API_BASE_URL
-const ORDER_BASE_URL = import.meta.env.VITE_API_ORDER_URL || API_BASE_URL
-const NOTIFICATION_BASE_URL = import.meta.env.VITE_API_NOTIFICATION_URL || API_BASE_URL
+const API_BASE_URL = appConfig.apiBaseUrl
+const AUTH_BASE_URL = appConfig.authBaseUrl || API_BASE_URL
+const DELIVERY_BASE_URL = appConfig.deliveryBaseUrl || API_BASE_URL
+const ORDER_BASE_URL = appConfig.orderBaseUrl || API_BASE_URL
+const NOTIFICATION_BASE_URL = appConfig.notificationBaseUrl || API_BASE_URL
 
 const createApi = (baseURL) => {
   const instance = axios.create({
