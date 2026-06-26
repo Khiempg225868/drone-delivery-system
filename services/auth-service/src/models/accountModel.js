@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 
 const accountSchema = new mongoose.Schema(
   {
     _id: {
       type: String,
-      default: uuidv4,
+      default: () => randomUUID(),
     },
     FullName: {
       type: String,
