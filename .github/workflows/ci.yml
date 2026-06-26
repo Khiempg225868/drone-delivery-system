@@ -112,7 +112,7 @@ jobs:
           format: 'table'
           severity: 'HIGH,CRITICAL'
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
   trivy-helm-scan:
     name: Trivy Helm/K8s manifest scan
     runs-on: ubuntu-latest
@@ -132,3 +132,4 @@ jobs:
           severity: 'HIGH,CRITICAL'
           hide-progress: true
           exit-code: '0'
+

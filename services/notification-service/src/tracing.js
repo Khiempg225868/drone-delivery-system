@@ -1,29 +1,38 @@
-import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { ZipkinExporter } from "@opentelemetry/exporter-zipkin";
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
+import { ExpressInstrumentation } from "@opentelemetry/instrumentation-express";
+import { MongooseInstrumentation } from "@opentelemetry/instrumentation-mongoose";
+import { registerInstrumentations } from "@opentelemetry/instrumentation";
 import { resourceFromAttributes } from "@opentelemetry/resources";
-import { NodeSDK } from "@opentelemetry/sdk-node";
+import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
-const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-  || (process.env.OTEL_EXPORTER_OTLP_ENDPOINT
-    ? `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/$/, "")}/v1/traces`
-    : undefined);
+const zipkinEndpoint = process.env.OTEL_EXPORTER_ZIPKIN_ENDPOINT
+  || "http://jaeger-collector.tracing.svc.cluster.local:9411/api/v2/spans";
 
 if (process.env.OTEL_SDK_DISABLED !== "true") {
-  const sdk = new NodeSDK({
+  const provider = new NodeTracerProvider({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || "notification-service",
     }),
-    traceExporter: new OTLPTraceExporter(
-      otlpEndpoint ? { url: otlpEndpoint } : {},
-    ),
-    instrumentations: [getNodeAutoInstrumentations()],
   });
 
-  sdk.start();
+  provider.addSpanProcessor(new BatchSpanProcessor(new ZipkinExporter({
+    url: zipkinEndpoint,
+  })));
+  provider.register();
+
+  registerInstrumentations({
+    instrumentations: [
+      new HttpInstrumentation(),
+      new ExpressInstrumentation(),
+      new MongooseInstrumentation(),
+    ],
+  });
 
   process.on("SIGTERM", () => {
-    sdk.shutdown()
+    provider.shutdown()
       .catch((error) => console.error("Error shutting down tracing", error))
       .finally(() => process.exit(0));
   });
