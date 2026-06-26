@@ -15,4 +15,4 @@ EXPOSE 5004
 
 USER 1000
 
-CMD ["node", "src/index.js"]
+CMD ["node", "--import", "./src/tracing.js", "src/index.js"]

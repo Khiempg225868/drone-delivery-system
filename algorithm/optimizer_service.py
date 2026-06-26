@@ -1,9 +1,17 @@
 import json
+import os
 import time
 from pathlib import Path
 from typing import List, Optional
 
 from fastapi import FastAPI, Request
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
@@ -28,6 +36,24 @@ class OptimizeRequest(BaseModel):
 
 
 app = FastAPI()
+
+
+def setup_tracing(fastapi_app: FastAPI):
+    if os.getenv("OTEL_SDK_DISABLED", "false").lower() == "true":
+        return
+
+    resource = Resource.create({
+        SERVICE_NAME: os.getenv("OTEL_SERVICE_NAME", "python-optimizer"),
+    })
+    provider = TracerProvider(resource=resource)
+    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+    trace.set_tracer_provider(provider)
+
+    FastAPIInstrumentor.instrument_app(fastapi_app)
+    RequestsInstrumentor().instrument()
+
+
+setup_tracing(app)
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 CONFIG_PATH = Path(__file__).with_name("config.json")
 
