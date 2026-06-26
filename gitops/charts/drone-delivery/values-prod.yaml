@@ -7,19 +7,19 @@ mongo:
 workloads:
   auth-service:
     replicas: 2
-    image: docker.io/khiempg225868/auth-service:v2.0.6
+    image: docker.io/khiempg225868/auth-service:v2.0.7
   delivery-service:
     replicas: 2
-    image: docker.io/khiempg225868/delivery-service:v2.0.6
+    image: docker.io/khiempg225868/delivery-service:v2.0.7
   order-service:
     replicas: 2
-    image: docker.io/khiempg225868/order-service:v2.0.6
+    image: docker.io/khiempg225868/order-service:v2.0.7
   notification-service:
     replicas: 2
-    image: docker.io/khiempg225868/notification-service:v2.0.6
+    image: docker.io/khiempg225868/notification-service:v2.0.7
   python-optimizer:
-    image: docker.io/khiempg225868/python-optimizer:v2.0.6
+    image: docker.io/khiempg225868/python-optimizer:v2.0.7
   frontend:
-    image: docker.io/khiempg225868/frontend:v2.0.6
+    image: docker.io/khiempg225868/frontend:v2.0.7
     enabled: true
     serviceType: NodePort
