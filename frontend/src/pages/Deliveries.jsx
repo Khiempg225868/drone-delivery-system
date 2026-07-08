@@ -4,23 +4,19 @@ import { confirmDelivery, getDeliveries, getMyDeliveries } from '../services/api
 import DeliveryForm from '../components/DeliveryForm'
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../i18n/LanguageContext'
+import { appConfig } from '../config/runtimeConfig'
 
-const ORDER_API_BASE = import.meta.env.VITE_API_ORDER_URL || import.meta.env.VITE_API_BASE_URL
+const ORDER_API_BASE = appConfig.orderBaseUrl || appConfig.apiBaseUrl
 
 export default function Deliveries() {
   const { user } = useAuth()
   const { locale, t } = useLanguage()
   const [deliveries, setDeliveries] = useState([])
-  const [activeOrders, setActiveOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [ratingById, setRatingById] = useState({})
   const [feedbackById, setFeedbackById] = useState({})
   const [confirmingId, setConfirmingId] = useState(null)
   const [ownerHouses, setOwnerHouses] = useState([])
-  const [allHouses, setAllHouses] = useState([])
-  const [trackingQuery, setTrackingQuery] = useState('')
-  const [selectedTrackingId, setSelectedTrackingId] = useState('')
-  const [lastUpdated, setLastUpdated] = useState(null)
   const [orderForm, setOrderForm] = useState({
     houseId: '',
     name: '',
@@ -61,120 +57,14 @@ export default function Deliveries() {
   const fetchDeliveries = async ({ silent = false } = {}) => {
     try {
       if (!silent) setLoading(true)
-      const [deliveryResponse, ordersResponse, housesResponse] = await Promise.all([
-        user?.Role === 'customer' ? getMyDeliveries() : getDeliveries(),
-        axios.get(`${ORDER_API_BASE}/location/orders`).catch(() => ({ data: [] })),
-        axios.get(`${ORDER_API_BASE}/location/houses`).catch(() => ({ data: [] }))
-      ])
-
+      const deliveryResponse = await (user?.Role === 'customer' ? getMyDeliveries() : getDeliveries())
       setDeliveries(deliveryResponse.data || [])
-      setActiveOrders(ordersResponse.data || [])
-      setAllHouses(housesResponse.data || [])
-      setLastUpdated(new Date())
     } catch (error) {
       console.error('Error fetching deliveries:', error)
     } finally {
       if (!silent) setLoading(false)
     }
   }
-
-  const houseById = new Map(allHouses.map((house) => [house._id, house]))
-  const ownerHouseIds = new Set(ownerHouses.map((house) => house._id))
-
-  const getStatusLabel = (status) => {
-    const labels = {
-      pending: t('Pending'),
-      assigned: t('Assigned'),
-      in_transit: t('In transit'),
-      delivered: t('Delivered'),
-      failed: t('Failed'),
-      cancelled: t('Cancelled')
-    }
-
-    return labels[status] || status || 'N/A'
-  }
-
-  const getTrackingSteps = (status) => {
-    const steps = [
-      { key: 'pending', label: t('Order created') },
-      { key: 'assigned', label: t('Route assigned') },
-      { key: 'in_transit', label: t('Drone in transit') },
-      { key: 'delivered', label: t('Delivered') }
-    ]
-    const order = ['pending', 'assigned', 'in_transit', 'delivered']
-    const currentIndex = Math.max(0, order.indexOf(status))
-
-    return steps.map((step, index) => ({
-      ...step,
-      completed: status === 'delivered' || index <= currentIndex,
-      current: index === currentIndex && status !== 'delivered'
-    }))
-  }
-
-  const getProgress = (status) => {
-    const progress = {
-      pending: 25,
-      assigned: 50,
-      in_transit: 75,
-      delivered: 100,
-      failed: 100,
-      cancelled: 100
-    }
-
-    return progress[status] || 0
-  }
-
-  const trackingItems = [
-    ...activeOrders.map((order) => {
-      const house = houseById.get(order.houseId)
-      return {
-        id: order._id || order.orderId,
-        code: order.orderId,
-        source: 'order',
-        status: order.status,
-        packageName: order.package?.description,
-        weight: order.package?.weight,
-        address: house?.address || t('Unknown address'),
-        receiverName: house?.owner?.name,
-        receiverPhone: house?.owner?.phone,
-        houseId: order.houseId,
-        createdAt: order.createdAt,
-        deliveredAt: null,
-        sequence: order.sequence
-      }
-    }),
-    ...deliveries.map((delivery) => ({
-      id: delivery._id,
-      code: delivery.deliveryId,
-      source: 'delivery',
-      status: delivery.status,
-      packageName: delivery.package?.description,
-      weight: delivery.package?.weight,
-      address: delivery.receiver?.address,
-      receiverName: delivery.receiver?.name,
-      receiverPhone: delivery.receiver?.phone,
-      houseId: null,
-      createdAt: delivery.createdAt,
-      deliveredAt: delivery.actualDeliveryTime,
-      sequence: null
-    }))
-  ]
-    .filter((item) => user?.Role !== 'customer' || item.source === 'delivery' || ownerHouseIds.has(item.houseId))
-    .filter((item) => {
-      const keyword = trackingQuery.trim().toLowerCase()
-      if (!keyword) return true
-      return [
-        item.code,
-        item.packageName,
-        item.address,
-        item.receiverName,
-        item.receiverPhone,
-        item.status
-      ].some((value) => String(value || '').toLowerCase().includes(keyword))
-    })
-    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-
-  const selectedTracking = trackingItems.find((item) => item.id === selectedTrackingId) || trackingItems[0]
 
   const setRating = (id, value) => {
     setRatingById((prev) => ({ ...prev, [id]: value }))
@@ -373,143 +263,6 @@ export default function Deliveries() {
             )}
           </div>
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{t('Delivery Tracking')}</h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {lastUpdated ? `${t('Last updated')}: ${formatDate(lastUpdated)}` : t('Live status for your orders')}
-                  </p>
-                </div>
-                <button
-                  onClick={() => fetchDeliveries()}
-                  className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition text-sm font-semibold"
-                >
-                  {t('Refresh')}
-                </button>
-              </div>
-
-              <input
-                value={trackingQuery}
-                onChange={(e) => setTrackingQuery(e.target.value)}
-                placeholder={t('Search by tracking code, address, or receiver')}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none"
-              />
-
-              {trackingItems.length === 0 ? (
-                <div className="text-center py-10 text-gray-500">
-                  {t('No tracking records found')}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 xl:grid-cols-5 gap-5 mt-5">
-                  <div className="xl:col-span-2 space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                    {trackingItems.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSelectedTrackingId(item.id)}
-                        className={`w-full text-left border rounded-xl p-4 transition ${
-                          selectedTracking?.id === item.id
-                            ? 'border-orange-400 bg-orange-50'
-                            : 'border-gray-100 bg-white hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-bold text-gray-900">{item.code}</p>
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.address || 'N/A'}</p>
-                          </div>
-                          <span className={`px-2 py-1 rounded-full text-[11px] font-semibold ${statusStyles(item.status)}`}>
-                            {getStatusLabel(item.status)}
-                          </span>
-                        </div>
-                        <div className="mt-3 h-2 rounded-full bg-gray-100 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-orange-500"
-                            style={{ width: `${getProgress(item.status)}%` }}
-                          />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="xl:col-span-3 border border-gray-100 rounded-2xl p-5 bg-gradient-to-br from-white to-slate-50">
-                    {selectedTracking && (
-                      <>
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                          <div>
-                            <p className="text-sm text-gray-500">{t('Tracking code')}</p>
-                            <h3 className="text-2xl font-bold text-gray-900">{selectedTracking.code}</h3>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyles(selectedTracking.status)}`}>
-                            {getStatusLabel(selectedTracking.status)}
-                          </span>
-                        </div>
-
-                        <div className="mt-5">
-                          <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-orange-500 to-green-500 transition-all"
-                              style={{ width: `${getProgress(selectedTracking.status)}%` }}
-                            />
-                          </div>
-                          <div className="mt-4 grid grid-cols-4 gap-2">
-                            {getTrackingSteps(selectedTracking.status).map((step) => (
-                              <div key={step.key} className="text-center">
-                                <div
-                                  className={`mx-auto w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                    step.completed
-                                      ? 'bg-green-500 text-white'
-                                      : step.current
-                                      ? 'bg-orange-500 text-white'
-                                      : 'bg-gray-200 text-gray-500'
-                                  }`}
-                                >
-                                  {step.completed ? '✓' : '•'}
-                                </div>
-                                <p className="text-[11px] text-gray-600 mt-2 leading-tight">{step.label}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6 text-sm">
-                          <div className="bg-white rounded-lg border border-gray-100 p-3">
-                            <p className="text-xs text-gray-500">{t('Package')}</p>
-                            <p className="font-semibold text-gray-900">{selectedTracking.packageName || 'N/A'}</p>
-                            <p className="text-xs text-gray-500 mt-1">{selectedTracking.weight || 0} kg</p>
-                          </div>
-                          <div className="bg-white rounded-lg border border-gray-100 p-3">
-                            <p className="text-xs text-gray-500">{t('Recipient')}</p>
-                            <p className="font-semibold text-gray-900">{selectedTracking.receiverName || 'N/A'}</p>
-                            <p className="text-xs text-gray-500 mt-1">{selectedTracking.receiverPhone || 'N/A'}</p>
-                          </div>
-                          <div className="bg-white rounded-lg border border-gray-100 p-3 sm:col-span-2">
-                            <p className="text-xs text-gray-500">{t('Delivery address')}</p>
-                            <p className="font-semibold text-gray-900">{selectedTracking.address || 'N/A'}</p>
-                          </div>
-                          <div className="bg-white rounded-lg border border-gray-100 p-3">
-                            <p className="text-xs text-gray-500">{t('Created at')}</p>
-                            <p className="font-semibold text-gray-900">{formatDate(selectedTracking.createdAt)}</p>
-                          </div>
-                          <div className="bg-white rounded-lg border border-gray-100 p-3">
-                            <p className="text-xs text-gray-500">{t('Delivered at')}</p>
-                            <p className="font-semibold text-gray-900">{formatDate(selectedTracking.deliveredAt)}</p>
-                          </div>
-                          {selectedTracking.sequence && (
-                            <div className="bg-white rounded-lg border border-gray-100 p-3 sm:col-span-2">
-                              <p className="text-xs text-gray-500">{t('Route stop')}</p>
-                              <p className="font-semibold text-gray-900">#{selectedTracking.sequence}</p>
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">{t('Recent Deliveries')}</h2>
