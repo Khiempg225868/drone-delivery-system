@@ -4,8 +4,6 @@ import { getDrones, getDeliveries } from '../services/api'
 import axios from 'axios'
 import { useLanguage } from '../i18n/LanguageContext'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL
-
 const StatCard = ({ icon, label, value, color, trend }) => (
   <div className={`bg-gradient-to-br from-${color}-50 to-${color}-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition transform hover:scale-105`}>
     <div className="flex items-center justify-between">
@@ -39,6 +37,43 @@ const RecentItem = ({ type, title, status, time }) => (
     >
       {status}
     </span>
+  </div>
+)
+
+const RolloutBanner = ({ t }) => (
+  <div className="mb-8 overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-lg">
+    <div className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-2xl">
+          🚀
+        </div>
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl font-bold text-gray-900">{t('CI/CD Rollout Demo')}</h2>
+            <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
+              v2.0.9
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-gray-600">
+            {t('This banner is the visible UI marker for ArgoCD sync and rollback validation.')}
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="rounded-xl bg-gray-50 px-4 py-3">
+          <p className="text-xs font-semibold uppercase text-gray-500">{t('Build')}</p>
+          <p className="text-sm font-bold text-gray-900">{t('Passed')}</p>
+        </div>
+        <div className="rounded-xl bg-gray-50 px-4 py-3">
+          <p className="text-xs font-semibold uppercase text-gray-500">{t('ArgoCD')}</p>
+          <p className="text-sm font-bold text-emerald-600">{t('Synced')}</p>
+        </div>
+        <div className="rounded-xl bg-gray-50 px-4 py-3">
+          <p className="text-xs font-semibold uppercase text-gray-500">{t('Rollback')}</p>
+          <p className="text-sm font-bold text-blue-600">{t('Ready')}</p>
+        </div>
+      </div>
+    </div>
   </div>
 )
 
@@ -116,6 +151,8 @@ export default function Dashboard() {
           {t("Here's what's happening with your delivery system today")}
         </p>
       </div>
+
+      <RolloutBanner t={t} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
