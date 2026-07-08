@@ -2,6 +2,7 @@
 {{- $workloads := .Values.workloads -}}
 {{- $auth := index $workloads "auth-service" -}}
 {{- $delivery := index $workloads "delivery-service" -}}
+{{- $frontend := index $workloads "frontend" -}}
 {{- $order := index $workloads "order-service" -}}
 {{- $notification := index $workloads "notification-service" -}}
 apiVersion: networking.k8s.io/v1
@@ -60,4 +61,13 @@ spec:
                 name: {{ include "drone-delivery.fullname" . }}-notification-service
                 port:
                   number: {{ $notification.port }}
+          {{- if $frontend.enabled }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "drone-delivery.fullname" . }}-frontend
+                port:
+                  number: {{ $frontend.port }}
+          {{- end }}
 {{- end }}
