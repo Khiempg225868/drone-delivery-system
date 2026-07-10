@@ -110,7 +110,7 @@ export default function Home() {
               🚁
             </span>
             <span className="text-xl font-bold tracking-tight" style={{ fontFamily: FONT_DISPLAY }}>
-              DroneFlow!
+              DroneFlow CICD
             </span>
           </button>
 
